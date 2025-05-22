@@ -1,0 +1,48 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+.pnpm-debug.log*
+
+# Compilados
+dist/
+out-tsc/
+.tmp/
+.angular/
+.angular/cache/
+
+# IDEs y editores
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de entorno
+.env
+.env.*.local
+
+# Angular specific
+coverage/
+.sass-cache/
+browser-sync.log
+testem.log
+typings/
+jspm_packages/
+
+# Firebase (si usas AngularFire)
+firebase-debug.log
+.firebaserc
+.firebase/
+
+# Cache
+.cache/
+.eslintcache
+turbo/
