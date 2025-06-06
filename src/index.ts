@@ -25,6 +25,8 @@ mongoose.connect(process.env.MONGODB_URI as string)
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 
+
+
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
