@@ -4,7 +4,9 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import './infrastructure/di/registry';  // Importar el registro de dependencias
-import productRoutes from './routes/productRoutes';
+import './infrastructure/database/models';  // Importar todos los modelos
+import productRoutes from './presentation/routes/product.routes';
+import userRoutes from './routes/userRoutes';
 
 dotenv.config();
 
@@ -20,9 +22,8 @@ mongoose.connect(process.env.MONGODB_URI as string)
   .catch(err => console.error('❌ Error de conexión:', err));
 
 // Rutas
-app.use('/api', productRoutes);
-
-
+app.use('/api/products', productRoutes);
+app.use('/api/users', userRoutes);
 
 const PORT = 3001;
 app.listen(PORT, () => {

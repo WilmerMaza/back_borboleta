@@ -5,6 +5,6 @@ import { ProductController } from '../presentation/controllers/ProductController
 const router = Router();
 const productController = container.resolve(ProductController);
 
-router.post('/products', productController.handleCreateProduct);
+router.post('/products', productController.createProduct);
 
 export default router;

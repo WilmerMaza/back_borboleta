@@ -3,10 +3,8 @@ import slugify from 'slugify'
 import { IProduct } from '../../../domain/entities/Product'
 
 const productSchema = new mongoose.Schema({
-  product_type: { type: String },
-  name: { type: String },
+  name: { type: String, required: true },
   slug: { type: String, unique: true },
-  short_description: { type: String },
   description: { type: String },
   type: { type: String },
   product_thumbnail_id: { type: Number},
@@ -16,7 +14,7 @@ const productSchema = new mongoose.Schema({
   product_galleries_id: [{ type: Number }],
   unit: { type: String },
   weight: { type: Number }, // 🔻 requerido eliminado
-  price: { type: Number  },
+  price: { type: Number, required: true },
   sale_price: { type: Number },
   discount: { type: Number },
   wholesale_price_type: { type: String },
@@ -25,7 +23,7 @@ const productSchema = new mongoose.Schema({
   sale_expired_at: { type: Date },
   sku: { type: String},
   stock_status: { type: String  },
-  stock: { type: String }, // 🔻 requerido eliminado
+  stock: { type: Number, default: 0 },
   visible_time: { type: String },
   quantity: { type: Number, default: 0 },
   store_id: { type: Number},
