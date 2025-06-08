@@ -11,10 +11,8 @@ export class CreateProductHandler {
 
   async handle(command: CreateProductCommand): Promise<IProduct> {
     const productData = command.data;
-
-    // Si quieres permitir productos incluso sin nombre o precio, elimina esta validación:
-    // También puedes loguear si te interesa saber qué viene vacío
-    // console.log('Creando producto con datos:', productData);
+    console.log('📦 Datos recibidos en el handler:', productData);
+    console.log('💰 Precio en el handler:', productData.price, 'Tipo:', typeof productData.price);
 
     return await this.productRepository.create(productData);
   }

@@ -2,7 +2,7 @@ import { IProductRepository } from '../../../domain/repositories/IProductReposit
 import { IProduct } from '../../../domain/entities/Product';
 import { injectable, inject } from 'tsyringe';
 
-export interface GetProductsParams {
+interface GetProductsParams {
     page?: number;
     limit?: number;
     search?: string;
@@ -13,10 +13,10 @@ export interface GetProductsParams {
 @injectable()
 export class GetProductsUseCase {
     constructor(
-        @inject('ProductRepository') private readonly productRepository: IProductRepository
+        @inject('ProductRepository') private productRepository: IProductRepository
     ) {}
 
-    async execute(params: GetProductsParams = {}): Promise<{
+    async execute(params?: GetProductsParams): Promise<{
         success: boolean;
         data: IProduct[];
         total: number;
@@ -24,19 +24,12 @@ export class GetProductsUseCase {
         limit: number;
     }> {
         try {
-            const {
-                page = 1,
-                limit = 10,
-            
-            } = params;
-
+            const page = params?.page || 1;
+            const limit = params?.limit || 10;
             const skip = (page - 1) * limit;
 
             const [products, total] = await Promise.all([
-                this.productRepository.findAll({
-                    skip,
-                    limit
-                }),
+                this.productRepository.findAll({ skip, limit }),
                 this.productRepository.count()
             ]);
 
@@ -48,13 +41,7 @@ export class GetProductsUseCase {
                 limit
             };
         } catch (error) {
-            return {
-                success: false,
-                data: [],
-                total: 0,
-                page: 1,
-                limit: 10
-            };
+            throw new Error('Error al obtener los productos');
         }
     }
 } 

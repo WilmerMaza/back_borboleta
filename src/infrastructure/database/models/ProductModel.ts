@@ -14,7 +14,17 @@ const productSchema = new mongoose.Schema({
   product_galleries_id: [{ type: Number }],
   unit: { type: String },
   weight: { type: Number }, // 🔻 requerido eliminado
-  price: { type: Number, required: true },
+  price: { 
+    type: Number, 
+    required: true,
+    min: [0, 'El precio no puede ser negativo'],
+    validate: {
+      validator: function(v: number) {
+        return typeof v === 'number' && !isNaN(v) && v >= 0;
+      },
+      message: 'El precio debe ser un número válido mayor o igual a 0'
+    }
+  },
   sale_price: { type: Number },
   discount: { type: Number },
   wholesale_price_type: { type: String },
