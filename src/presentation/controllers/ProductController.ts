@@ -3,6 +3,7 @@ import { injectable, inject } from 'tsyringe';
 import { CreateProductCommand } from '../../application/commands/product/CreateProductCommand';
 import { CreateProductHandler } from '../../application/command-handlers/product/CreateProductHandler';
 import { GetProductsHandler } from '../../application/command-handlers/product/GetProductsHandler';
+import mongoose from 'mongoose';
 
 @injectable()
 export class ProductController {
@@ -13,7 +14,29 @@ export class ProductController {
 
   async createProduct(req: Request, res: Response): Promise<void> {
     try {
-      const command = new CreateProductCommand(req.body);
+      console.log('📦 Datos recibidos en el controlador:', req.body);
+      console.log('💰 Precio recibido:', req.body.price, 'Tipo:', typeof req.body.price);
+
+      // Validar que el precio sea un número válido
+      if (req.body.price === undefined || req.body.price === null) {
+        throw new Error('El precio es requerido');
+      }
+
+      const price = Number(req.body.price);
+      console.log('💰 Precio convertido:', price, 'Tipo:', typeof price);
+
+      if (isNaN(price) || price < 0) {
+        throw new Error('El precio debe ser un número válido mayor o igual a 0');
+      }
+
+      const productData = {
+        ...req.body,
+        price: price
+      };
+
+      console.log('📦 Datos finales del producto:', productData);
+
+      const command = new CreateProductCommand(productData);
       const product = await this.createProductHandler.handle(command);
       
       res.status(201).json({
@@ -22,6 +45,17 @@ export class ProductController {
       });
     } catch (error: any) {
       console.error('❌ Error al crear producto:', error.message);
+      
+      // Manejar errores de validación de Mongoose
+      if (error instanceof mongoose.Error.ValidationError) {
+        const validationErrors = Object.values(error.errors).map(err => err.message);
+        res.status(400).json({
+          success: false,
+          message: 'Error de validación',
+          details: validationErrors
+        });
+        return;
+      }
       
       res.status(400).json({
         success: false,
