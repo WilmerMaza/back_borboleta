@@ -3,13 +3,16 @@ import { injectable, inject } from 'tsyringe';
 import { CreateProductCommand } from '../../application/commands/product/CreateProductCommand';
 import { CreateProductHandler } from '../../application/command-handlers/product/CreateProductHandler';
 import { GetProductsHandler } from '../../application/command-handlers/product/GetProductsHandler';
+import { GetProductBySlugCommand } from '../../application/commands/product/GetProductBySlugCommand';
+import { GetProductBySlugHandler } from '../../application/command-handlers/product/GetProductBySlugHandler';
 import mongoose from 'mongoose';
 
 @injectable()
 export class ProductController {
   constructor(
     @inject("CreateProductHandler") private createProductHandler: CreateProductHandler,
-    @inject("GetProductsHandler") private getProductsHandler: GetProductsHandler
+    @inject("GetProductsHandler") private getProductsHandler: GetProductsHandler,
+    @inject("GetProductBySlugHandler") private getProductBySlugHandler: GetProductBySlugHandler
   ) {}
 
   async createProduct(req: Request, res: Response): Promise<void> {
@@ -79,6 +82,44 @@ export class ProductController {
       res.status(400).json({
         success: false,
         message: error.message || 'Error al obtener los productos',
+        details: error?.errors || null
+      });
+    }
+  }
+
+  async getProductBySlug(req: Request, res: Response): Promise<void> {
+    try {
+      const { slug } = req.params;
+      
+      if (!slug) {
+        res.status(400).json({
+          success: false,
+          message: 'El slug es requerido'
+        });
+        return;
+      }
+
+      const command = new GetProductBySlugCommand(slug);
+      const product = await this.getProductBySlugHandler.handle(command);
+      
+      res.status(200).json({
+        success: true,
+        data: product
+      });
+    } catch (error: any) {
+      console.error('❌ Error al obtener producto por slug:', error.message);
+      
+      if (error.message.includes('no encontrado')) {
+        res.status(404).json({
+          success: false,
+          message: error.message
+        });
+        return;
+      }
+      
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Error al obtener el producto',
         details: error?.errors || null
       });
     }

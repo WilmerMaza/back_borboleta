@@ -1,9 +1,0 @@
-{
-  "name": "Alejandra Alfaro",
-  "email": "alejandra@example.com",
-  "phone": "5551234567",
-  "country_code": 52,
-  "role_id": 2,
-  "status": true,
-  "is_approved": false
-}
