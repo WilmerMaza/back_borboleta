@@ -18,7 +18,21 @@ export class CategoryRepository {
   }
 
   async findAll(): Promise<ICategory[]> {
-    return await CategoryModel.find({ parent_id: null }).populate('subcategories');
+    try {
+      const categories = await CategoryModel.find({ parent_id: null }).populate('subcategories');
+      
+      // Transformar _id a id para compatibilidad con el frontend
+      return categories.map(category => {
+        const categoryObj = category.toObject();
+        return {
+          ...categoryObj,
+          id: categoryObj._id
+        };
+      });
+    } catch (error) {
+      console.error('❌ Error en CategoryRepository.findAll:', error);
+      throw new Error('Error al obtener categorías de la base de datos');
+    }
   }
 
   async findSubcategories(parentId: string): Promise<ICategory[]> {

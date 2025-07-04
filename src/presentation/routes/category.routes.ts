@@ -20,4 +20,10 @@ router.get('/slug/:slug', (req, res) => categoryController.getBySlug(req, res));
 // GET /api/categories/:parentId/subcategories - Obtener subcategorías
 router.get('/:parentId/subcategories', (req, res) => categoryController.getSubcategories(req, res));
 
+// PUT /api/categories/:id - Actualizar categoría
+router.put('/:id', (req, res) => categoryController.update(req, res));
+
+// DELETE /api/categories/:id - Eliminar categoría
+router.delete('/:id', (req, res) => categoryController.delete(req, res));
+
 export default router; 

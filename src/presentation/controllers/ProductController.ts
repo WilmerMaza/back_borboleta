@@ -5,6 +5,10 @@ import { CreateProductHandler } from '../../application/command-handlers/product
 import { GetProductsHandler } from '../../application/command-handlers/product/GetProductsHandler';
 import { GetProductBySlugCommand } from '../../application/commands/product/GetProductBySlugCommand';
 import { GetProductBySlugHandler } from '../../application/command-handlers/product/GetProductBySlugHandler';
+import { UpdateProductCommand } from '../../application/commands/product/UpdateProductCommand';
+import { UpdateProductHandler } from '../../application/command-handlers/product/UpdateProductHandler';
+import { DeleteProductCommand } from '../../application/commands/product/DeleteProductCommand';
+import { DeleteProductHandler } from '../../application/command-handlers/product/DeleteProductHandler';
 import mongoose from 'mongoose';
 
 @injectable()
@@ -12,7 +16,9 @@ export class ProductController {
   constructor(
     @inject("CreateProductHandler") private createProductHandler: CreateProductHandler,
     @inject("GetProductsHandler") private getProductsHandler: GetProductsHandler,
-    @inject("GetProductBySlugHandler") private getProductBySlugHandler: GetProductBySlugHandler
+    @inject("GetProductBySlugHandler") private getProductBySlugHandler: GetProductBySlugHandler,
+    @inject("UpdateProductHandler") private updateProductHandler: UpdateProductHandler,
+    @inject("DeleteProductHandler") private deleteProductHandler: DeleteProductHandler
   ) {}
 
   async createProduct(req: Request, res: Response): Promise<void> {
@@ -120,6 +126,127 @@ export class ProductController {
       res.status(400).json({
         success: false,
         message: error.message || 'Error al obtener el producto',
+        details: error?.errors || null
+      });
+    }
+  }
+
+  async updateProduct(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      
+      if (!id || id === 'undefined' || id === 'null') {
+        res.status(400).json({
+          success: false,
+          message: 'El ID del producto es requerido y debe ser válido'
+        });
+        return;
+      }
+
+      // Validar que el ID tenga el formato correcto de MongoDB ObjectId
+      if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+        res.status(400).json({
+          success: false,
+          message: 'El ID del producto debe tener un formato válido'
+        });
+        return;
+      }
+
+      console.log('📦 Actualizando producto con ID:', id);
+      console.log('📦 Datos de actualización:', req.body);
+
+      // Validar que el precio sea un número válido si se está actualizando
+      if (req.body.price !== undefined && req.body.price !== null) {
+        const price = Number(req.body.price);
+        if (isNaN(price) || price < 0) {
+          throw new Error('El precio debe ser un número válido mayor o igual a 0');
+        }
+        req.body.price = price;
+      }
+
+      const command = new UpdateProductCommand(id, req.body);
+      const product = await this.updateProductHandler.handle(command);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Producto actualizado exitosamente',
+        data: product
+      });
+    } catch (error: any) {
+      console.error('❌ Error al actualizar producto:', error.message);
+      
+      // Manejar errores de validación de Mongoose
+      if (error instanceof mongoose.Error.ValidationError) {
+        const validationErrors = Object.values(error.errors).map(err => err.message);
+        res.status(400).json({
+          success: false,
+          message: 'Error de validación',
+          details: validationErrors
+        });
+        return;
+      }
+      
+      if (error.message.includes('no encontrado')) {
+        res.status(404).json({
+          success: false,
+          message: error.message
+        });
+        return;
+      }
+      
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Error al actualizar el producto',
+        details: error?.errors || null
+      });
+    }
+  }
+
+  async deleteProduct(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      
+      if (!id || id === 'undefined' || id === 'null') {
+        res.status(400).json({
+          success: false,
+          message: 'El ID del producto es requerido y debe ser válido'
+        });
+        return;
+      }
+
+      // Validar que el ID tenga el formato correcto de MongoDB ObjectId
+      if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+        res.status(400).json({
+          success: false,
+          message: 'El ID del producto debe tener un formato válido'
+        });
+        return;
+      }
+
+      console.log('🗑️ Eliminando producto con ID:', id);
+
+      const command = new DeleteProductCommand(id);
+      const deleted = await this.deleteProductHandler.handle(command);
+      
+      res.status(200).json({
+        success: true,
+        message: 'Producto eliminado exitosamente',
+        data: { deleted }
+      });
+    } catch (error: any) {
+      console.error('❌ Error al eliminar producto:', error.message);
+      
+      if (error.message.includes('no encontrado')) {
+        res.status(404).json({
+          success: false,
+          message: error.message
+        });
+        return;
+      }
+      
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Error al eliminar el producto',
         details: error?.errors || null
       });
     }

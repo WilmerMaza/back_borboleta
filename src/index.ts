@@ -7,6 +7,7 @@ import './infrastructure/database/models';  // Importar todos los modelos
 import productRoutes from './presentation/routes/product.routes';
 import userRoutes from './routes/userRoutes';
 import categoryRoutes from './presentation/routes/category.routes';
+import orderRoutes from './presentation/routes/order.routes';
 import connectDB from './infrastructure/database/config/database';
 
 dotenv.config();
@@ -32,6 +33,7 @@ connectDB()
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Ruta de prueba
 app.get('/', (_req, res) => {

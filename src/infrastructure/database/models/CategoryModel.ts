@@ -59,14 +59,14 @@ const categorySchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Virtual para subcategorías
+
 categorySchema.virtual('subcategories', {
   ref: 'Category',
   localField: '_id',
   foreignField: 'parent_id'
 });
 
-// Generador automático de slug único
+
 categorySchema.pre('save', async function (next) {
   if (!this.slug && this.name) {
     let baseSlug = slugify(this.name, { lower: true, strict: true });
@@ -82,7 +82,7 @@ categorySchema.pre('save', async function (next) {
   next();
 });
 
-// Método para poblar subcategorías
+
 categorySchema.methods.populateSubcategories = async function() {
   return await this.populate('subcategories');
 };
