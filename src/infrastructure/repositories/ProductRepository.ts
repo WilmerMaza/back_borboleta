@@ -42,7 +42,8 @@ export class ProductRepository implements IProductRepository {
             const productObj = savedProduct.toObject();
             return {
                 ...productObj,
-                id: productObj._id
+                id: productObj._id,
+                numeric_id: productObj.numeric_id
             };
         } catch (error) {
             console.error('❌ Error en ProductRepository.create:', error);
@@ -62,7 +63,8 @@ export class ProductRepository implements IProductRepository {
                 const productObj = product.toObject();
                 return {
                     ...productObj,
-                    id: productObj._id
+                    id: productObj._id,
+                    numeric_id: productObj.numeric_id
                 };
             });
         } catch (error) {
@@ -79,7 +81,8 @@ export class ProductRepository implements IProductRepository {
             const productObj = product.toObject();
             return {
                 ...productObj,
-                id: productObj._id
+                id: productObj._id,
+                numeric_id: productObj.numeric_id
             };
         } catch (error) {
             console.error('❌ Error en ProductRepository.findById:', error);
@@ -95,7 +98,8 @@ export class ProductRepository implements IProductRepository {
             const productObj = product.toObject();
             return {
                 ...productObj,
-                id: productObj._id
+                id: productObj._id,
+                numeric_id: productObj.numeric_id
             };
         } catch (error) {
             console.error('❌ Error en ProductRepository.findBySlug:', error);
@@ -141,7 +145,8 @@ export class ProductRepository implements IProductRepository {
             const productObj = updatedProduct.toObject();
             return {
                 ...productObj,
-                id: productObj._id
+                id: productObj._id,
+                numeric_id: productObj.numeric_id
             };
         } catch (error) {
             console.error('❌ Error en ProductRepository.update:', error);
@@ -157,4 +162,21 @@ export class ProductRepository implements IProductRepository {
     async count(): Promise<number> {
         return await ProductModel.countDocuments();
   }
+
+    async findByNumericId(numericId: number): Promise<IProduct | null> {
+        try {
+            const product = await ProductModel.findOne({ numeric_id: numericId });
+            if (!product) return null;
+            
+            const productObj = product.toObject();
+            return {
+                ...productObj,
+                id: productObj._id,
+                numeric_id: productObj.numeric_id
+            };
+        } catch (error) {
+            console.error('❌ Error en ProductRepository.findByNumericId:', error);
+            throw new Error('Error al obtener el producto por numeric_id de la base de datos');
+        }
+    }
 }

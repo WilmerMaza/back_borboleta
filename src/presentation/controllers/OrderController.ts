@@ -140,11 +140,11 @@ export class OrderController {
           return;
         }
 
-        // Validar que product_id sea un ObjectId válido
-        if (!mongoose.Types.ObjectId.isValid(item.product_id)) {
+        // Validar que product_id sea un string válido
+        if (!item.product_id || typeof item.product_id !== 'string') {
           res.status(400).json({
             success: false,
-            message: `El product_id debe ser un ObjectId válido: ${item.product_id}`
+            message: `El product_id debe ser un string válido: ${item.product_id}`
           });
           return;
         }
