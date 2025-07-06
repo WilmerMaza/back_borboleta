@@ -10,10 +10,10 @@ const productSchema = new mongoose.Schema({
   product_thumbnail_id: { type: Number},
   watermark: { type: Boolean, default: false },
   watermark_position: { type: String},
-  watermark_image_id: { type: Number }, // 🔻 requerido eliminado
+  watermark_image_id: { type: Number }, 
   product_galleries_id: [{ type: Number }],
   unit: { type: String },
-  weight: { type: Number }, // 🔻 requerido eliminado
+  weight: { type: Number }, 
   price: { 
     type: Number, 
     required: true,

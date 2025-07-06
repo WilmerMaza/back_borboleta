@@ -3,11 +3,11 @@ import { IProduct } from '../../../domain/entities/Product';
 
 export class UpdateProductCommand implements ICommand {
   constructor(
-    private readonly id: number,
+    private readonly id: string,
     private readonly productData: Partial<IProduct>
   ) {}
 
-  get data(): { id: number; update: Partial<IProduct> } {
+  get data(): { id: string; update: Partial<IProduct> } {
     return { id: this.id, update: this.productData };
   }
 }

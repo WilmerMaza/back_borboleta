@@ -1,11 +1,12 @@
 import { injectable, inject } from 'tsyringe';
-import { GetProductsUseCase } from '../../usecases/product/GetProductsUseCase';
+import { GetProductsUseCase } from '../../use-cases/GetProductsUseCase';
 import { IProduct } from '../../../domain/entities/Product';
+
 
 interface GetProductsParams {
     page?: number;
     limit?: number;
-}
+} 
 
 @injectable()
 export class GetProductsHandler {

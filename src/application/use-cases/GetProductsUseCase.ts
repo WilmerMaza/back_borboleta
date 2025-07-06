@@ -1,5 +1,5 @@
-import { IProductRepository } from '../../../domain/repositories/IProductRepository';
-import { IProduct } from '../../../domain/entities/Product';
+import { IProductRepository } from '../../domain/repositories/IProductRepository';
+import { IProduct } from '../../domain/entities/Product';
 import { injectable, inject } from 'tsyringe';
 
 interface GetProductsParams {
