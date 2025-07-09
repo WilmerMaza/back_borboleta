@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { injectable, inject } from 'tsyringe';
 import { ICartRepository } from '../../domain/repositories/ICartRepository';
 import { IProductRepository } from '../../domain/repositories/IProductRepository';
-import mongoose from 'mongoose';
 
 @injectable()
 export class CartController {
@@ -28,22 +27,16 @@ export class CartController {
 
   async getCart(req: Request, res: Response): Promise<void> {
     try {
-   
       let user_id = req.headers['user-id'] as string;
       
+      // Si no hay user_id, usar 'anonymous' para desarrollo
       if (!user_id) {
-        
-        console.log('⚠️ No se proporcionó user-id, creando uno temporal');
-
+        console.log('⚠️ No se proporcionó user-id, usando "anonymous" para desarrollo');
+        user_id = 'anonymous';
       }
 
-    
+      // Para desarrollo, usar el user_id tal como viene
       let validUserId = user_id;
-      if (!mongoose.Types.ObjectId.isValid(user_id)) {
-
-        console.log('⚠️ User ID no es un ObjectId válido, creando uno temporal:', user_id);
-
-      }
 
       console.log('🛒 Obteniendo carrito para usuario:', user_id);
 
@@ -122,13 +115,13 @@ export class CartController {
 
       console.log('🛒 Agregando al carrito:', { user_id, product_id, variation_id, quantity });
 
-      // Si no hay user_id, usar uno temporal (opcional)
+      // Si no hay user_id, usar 'anonymous' para desarrollo
       if (!user_id) {
-        console.log('ℹ️ No se proporcionó user-id, usando uno temporal');
-        user_id = 'temp_' + Date.now();
+        console.log('ℹ️ No se proporcionó user-id, usando "anonymous" para desarrollo');
+        user_id = 'anonymous';
       }
 
-      // Usar el user_id directamente ya que viene como string desde el frontend
+      // Para desarrollo, usar el user_id tal como viene
       let validUserId = user_id;
 
       if (!product_id) {
@@ -270,13 +263,13 @@ export class CartController {
 
       console.log('🛒 Actualizando cantidad:', { user_id, cart_item_id, quantity });
 
-      // Si no hay user_id, usar uno temporal (opcional)
+      // Si no hay user_id, usar 'anonymous' para desarrollo
       if (!user_id) {
-        console.log('ℹ️ No se proporcionó user-id, usando uno temporal');
-        user_id = 'temp_' + Date.now();
+        console.log('ℹ️ No se proporcionó user-id, usando "anonymous" para desarrollo');
+        user_id = 'anonymous';
       }
 
-      // Usar el user_id directamente ya que viene como string desde el frontend
+      // Para desarrollo, usar el user_id tal como viene
       let validUserId = user_id;
 
       if (!cart_item_id) {
@@ -361,13 +354,13 @@ export class CartController {
 
       console.log('🛒 Eliminando del carrito:', { user_id, cart_item_id });
 
-      // Si no hay user_id, usar uno temporal (opcional)
+      // Si no hay user_id, usar 'anonymous' para desarrollo
       if (!user_id) {
-        console.log('ℹ️ No se proporcionó user-id, usando uno temporal');
-        user_id = 'temp_' + Date.now();
+        console.log('ℹ️ No se proporcionó user-id, usando "anonymous" para desarrollo');
+        user_id = 'anonymous';
       }
 
-      // Usar el user_id directamente ya que viene como string desde el frontend
+      // Para desarrollo, usar el user_id tal como viene
       let validUserId = user_id;
 
       if (!cart_item_id) {
@@ -443,19 +436,14 @@ export class CartController {
 
       console.log('🛒 Vaciando carrito:', user_id);
 
-      // Si no hay user_id, crear uno temporal
+      // Si no hay user_id, usar 'anonymous' para desarrollo
       if (!user_id) {
-        console.log('⚠️ No se proporcionó user-id, creando uno temporal');
-        user_id = new mongoose.Types.ObjectId().toString();
+        console.log('⚠️ No se proporcionó user-id, usando "anonymous" para desarrollo');
+        user_id = 'anonymous';
       }
 
-      // Validar que user_id sea un ObjectId válido o crear uno temporal
+      // Para desarrollo, usar el user_id tal como viene
       let validUserId = user_id;
-      if (!mongoose.Types.ObjectId.isValid(user_id)) {
-        // Si no es un ObjectId válido, crear uno temporal para desarrollo
-        console.log('⚠️ User ID no es un ObjectId válido, creando uno temporal:', user_id);
-        validUserId = new mongoose.Types.ObjectId().toString();
-      }
 
       // Vaciar carrito
       const success = await this.cartRepository.clearCart(validUserId);

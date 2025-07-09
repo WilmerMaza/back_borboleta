@@ -26,7 +26,8 @@ export class CategoryRepository {
         const categoryObj = category.toObject();
         return {
           ...categoryObj,
-          id: categoryObj._id
+          id: categoryObj._id,
+          numeric_id: categoryObj.numeric_id
         };
       });
     } catch (error) {

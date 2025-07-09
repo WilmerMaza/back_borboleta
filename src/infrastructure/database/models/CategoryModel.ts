@@ -52,6 +52,11 @@ const categorySchema = new mongoose.Schema({
   },
   created_by_id: { 
     type: Number
+  },
+  numeric_id: {
+    type: Number,
+    unique: true,
+    sparse: true
   }
 }, {
   timestamps: true,
@@ -79,6 +84,15 @@ categorySchema.pre('save', async function (next) {
 
     this.slug = uniqueSlug;
   }
+
+  // Asignar numeric_id automáticamente si no existe
+  if (!this.numeric_id) {
+    const last = await mongoose.models.Category.findOne({ numeric_id: { $exists: true } })
+      .sort({ numeric_id: -1 })
+      .select('numeric_id');
+    this.numeric_id = last && last.numeric_id ? last.numeric_id + 1 : 1;
+  }
+
   next();
 });
 

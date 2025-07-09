@@ -20,4 +20,5 @@ export interface ICategory {
   created_at?: string;
   updated_at?: string;
   deleted_at?: string;
+  numeric_id?: number;
 } 
