@@ -3,6 +3,10 @@ import slugify from 'slugify'
 import { IProduct } from '../../../domain/entities/Product'
 
 const productSchema = new mongoose.Schema({
+  numeric_id: {
+    type: Number,
+    unique: true
+  },
   name: { type: String, required: true },
   slug: { type: String, unique: true },
   description: { type: String },
@@ -84,8 +88,21 @@ const productSchema = new mongoose.Schema({
   timestamps: true
 })
 
-// ✅ Generador automático de slug único
+
 productSchema.pre('save', async function (next) {
+  console.log('🛠️ Middleware pre-save ejecutado para producto:', this.name);
+  console.log('🛠️ numeric_id actual:', this.numeric_id);
+  
+  if (!this.numeric_id) {
+    console.log('🛠️ Buscando último producto con numeric_id...');
+    const lastProduct = await mongoose.models.Product.findOne({ numeric_id: { $exists: true } }).sort({ numeric_id: -1 });
+    console.log('🛠️ Último producto encontrado:', lastProduct ? { id: lastProduct._id, numeric_id: lastProduct.numeric_id } : 'No hay productos con numeric_id');
+    
+    this.numeric_id = lastProduct ? lastProduct.numeric_id + 1 : 1;
+    console.log('🆕 numeric_id asignado:', this.numeric_id);
+  }
+  
+ 
   if (!this.slug && this.name) {
     let baseSlug = slugify(this.name, { lower: true, strict: true })
     let uniqueSlug = baseSlug

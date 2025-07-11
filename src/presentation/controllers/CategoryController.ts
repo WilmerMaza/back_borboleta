@@ -63,7 +63,7 @@ export class CategoryController {
 
       const options = {
         parent_id: parent_id ? parseInt(parent_id as string) : undefined,
-        status: status !== undefined ? status === 'true' : undefined,
+        status: status !== undefined ? status === '1' : undefined,
         type: type as string,
         limit: parseInt(limit as string),
         page: parseInt(page as string)

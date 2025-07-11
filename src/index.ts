@@ -8,6 +8,9 @@ import productRoutes from './presentation/routes/product.routes';
 import userRoutes from './routes/userRoutes';
 import categoryRoutes from './presentation/routes/category.routes';
 import orderRoutes from './presentation/routes/order.routes';
+import cartRoutes from './presentation/routes/cart.routes';
+import checkoutRoutes from './presentation/routes/checkout.routes';
+import settingsRoutes from './presentation/routes/settings.routes';
 import connectDB from './infrastructure/database/config/database';
 
 dotenv.config();
@@ -34,6 +37,9 @@ app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/checkout', checkoutRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Ruta de prueba
 app.get('/', (_req, res) => {

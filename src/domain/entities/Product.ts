@@ -1,4 +1,5 @@
 export interface IProduct {
+  numeric_id?: number;
   id?: number;
   product_type?: string;
   name?: string;

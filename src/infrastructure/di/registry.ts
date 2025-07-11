@@ -16,6 +16,10 @@ import { UpdateCategoryHandler } from '../../application/command-handlers/catego
 import { DeleteCategoryHandler } from '../../application/command-handlers/category/DeleteCategoryHandler';
 import { OrderRepository } from '../repositories/OrderRepository';
 import { CreateOrderHandler } from '../../application/command-handlers/order/CreateOrderHandler';
+import { CartRepository } from '../repositories/CartRepository';
+import { CartController } from '../../presentation/controllers/CartController';
+import { CheckoutService } from '../../application/services/CheckoutService';
+import { CheckoutController } from '../../presentation/controllers/CheckoutController';
 
 // Registro de repositorios
 container.register('ProductRepository', {
@@ -32,6 +36,22 @@ container.register('CategoryRepository', {
 
 container.register('OrderRepository', {
   useClass: OrderRepository
+});
+
+container.register('CartRepository', {
+  useClass: CartRepository
+});
+
+container.register('CartController', {
+  useClass: CartController
+});
+
+container.register('CheckoutService', {
+  useClass: CheckoutService
+});
+
+container.register('CheckoutController', {
+  useClass: CheckoutController
 });
 
 // Registro de handlers
