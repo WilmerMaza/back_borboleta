@@ -24,7 +24,7 @@ export class SettingsService implements ISettingsService {
       .map(cat => cat.numeric_id)
       .filter(id => typeof id === 'number');
 
-    /
+    
     const options = JSON.parse(JSON.stringify(settings.options));
     if (options.header) {
       options.header.category_ids = categoryIds;
