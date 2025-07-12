@@ -10,11 +10,11 @@ export class CartController {
     @inject('ProductRepository') private productRepository: IProductRepository
   ) {}
 
-  // Función helper para formatear producto con imágenes
+
   private formatProductWithImages(product: any) {
     return {
       ...product,
-      // Campos de imagen explícitos para el frontend
+  
       product_thumbnail: product.product_thumbnail_id,
       product_galleries: product.product_galleries_id || [],
       watermark_image: product.watermark_image_id,
@@ -25,22 +25,14 @@ export class CartController {
     };
   }
 
-  async getCart(req: Request, res: Response): Promise<void> {
+  async getCart(_req: Request, res: Response): Promise<void> {
     try {
-      let user_id = req.headers['user-id'] as string;
-      
-      // Si no hay user_id, usar 'anonymous' para desarrollo
-      if (!user_id) {
-        console.log('⚠️ No se proporcionó user-id, usando "anonymous" para desarrollo');
-        user_id = 'anonymous';
-      }
-
-      // Para desarrollo, usar el user_id tal como viene
-      let validUserId = user_id;
+      // Usar el usuario fijo que ya existe
+      const user_id = "23";
 
       console.log('🛒 Obteniendo carrito para usuario:', user_id);
 
-      const cart = await this.cartRepository.findByUserId(validUserId);
+      const cart = await this.cartRepository.findByUserId(user_id);
       
       if (!cart) {
         // Devolver carrito vacío si no existe
@@ -48,6 +40,7 @@ export class CartController {
           success: true,
           message: 'Carrito obtenido exitosamente',
           data: {
+            user_id,
             items: [],
             total: 0,
             is_digital_only: false
@@ -91,6 +84,7 @@ export class CartController {
         success: true,
         message: 'Carrito obtenido exitosamente',
         data: {
+          user_id,
           items: formattedItems,
           total,
           is_digital_only: isDigitalOnly
@@ -110,19 +104,17 @@ export class CartController {
   // POST /api/cart - Agregar producto al carrito
   async addToCart(req: Request, res: Response): Promise<void> {
     try {
-      const { product_id, variation_id, quantity } = req.body;
-      let user_id = req.headers['user-id'] as string; // Obtener desde headers
-
-      console.log('🛒 Agregando al carrito:', { user_id, product_id, variation_id, quantity });
-
-      // Si no hay user_id, usar 'anonymous' para desarrollo
+      const { product_id, variation_id, quantity, user_id } = req.body;
+      
       if (!user_id) {
-        console.log('ℹ️ No se proporcionó user-id, usando "anonymous" para desarrollo');
-        user_id = 'anonymous';
+        res.status(400).json({
+          success: false,
+          message: 'El user_id es requerido en el body'
+        });
+        return;
       }
 
-      // Para desarrollo, usar el user_id tal como viene
-      let validUserId = user_id;
+      console.log('🛒 Agregando al carrito:', { user_id, product_id, variation_id, quantity });
 
       if (!product_id) {
         res.status(400).json({
@@ -196,8 +188,11 @@ export class CartController {
         created_by_id: null
       };
 
+      // Convertir user_id a string para que coincida con la base de datos
+      const userIdString = user_id.toString();
+      
       // Agregar al carrito
-      const updatedCart = await this.cartRepository.addItem(validUserId, cartItem);
+      const updatedCart = await this.cartRepository.addItem(userIdString, cartItem);
 
       console.log('✅ Producto agregado al carrito exitosamente');
 
@@ -238,6 +233,7 @@ export class CartController {
         success: true,
         message: 'Producto agregado al carrito exitosamente',
         data: {
+          user_id,
           items: formattedItems,
           total: cartTotal,
           is_digital_only: isDigitalOnly
@@ -258,19 +254,17 @@ export class CartController {
   async updateCartItem(req: Request, res: Response): Promise<void> {
     try {
       const { cart_item_id } = req.params;
-      const { quantity } = req.body;
-      let user_id = req.headers['user-id'] as string; // Obtener desde headers
-
-      console.log('🛒 Actualizando cantidad:', { user_id, cart_item_id, quantity });
-
-      // Si no hay user_id, usar 'anonymous' para desarrollo
+      const { quantity, user_id } = req.body;
+      
       if (!user_id) {
-        console.log('ℹ️ No se proporcionó user-id, usando "anonymous" para desarrollo');
-        user_id = 'anonymous';
+        res.status(400).json({
+          success: false,
+          message: 'El user_id es requerido en el body'
+        });
+        return;
       }
 
-      // Para desarrollo, usar el user_id tal como viene
-      let validUserId = user_id;
+      console.log('🛒 Actualizando cantidad:', { user_id, cart_item_id, quantity });
 
       if (!cart_item_id) {
         res.status(400).json({
@@ -288,8 +282,11 @@ export class CartController {
         return;
       }
 
+      // Convertir user_id a string para que coincida con la base de datos
+      const userIdString = user_id.toString();
+      
       // Actualizar cantidad
-      const updatedCart = await this.cartRepository.updateItem(validUserId, cart_item_id, quantity);
+      const updatedCart = await this.cartRepository.updateItem(userIdString, cart_item_id, quantity);
 
       if (!updatedCart) {
         res.status(404).json({
@@ -330,6 +327,7 @@ export class CartController {
         success: true,
         message: 'Cantidad actualizada exitosamente',
         data: {
+          user_id,
           items: updateFormattedItems,
           total: updateTotal,
           is_digital_only: updateIsDigitalOnly
@@ -350,18 +348,17 @@ export class CartController {
   async removeFromCart(req: Request, res: Response): Promise<void> {
     try {
       const { cart_item_id } = req.params;
-      let user_id = req.headers['user-id'] as string; // Obtener desde headers
-
-      console.log('🛒 Eliminando del carrito:', { user_id, cart_item_id });
-
-      // Si no hay user_id, usar 'anonymous' para desarrollo
+      const { user_id } = req.body;
+      
       if (!user_id) {
-        console.log('ℹ️ No se proporcionó user-id, usando "anonymous" para desarrollo');
-        user_id = 'anonymous';
+        res.status(400).json({
+          success: false,
+          message: 'El user_id es requerido en el body'
+        });
+        return;
       }
 
-      // Para desarrollo, usar el user_id tal como viene
-      let validUserId = user_id;
+      console.log('🛒 Eliminando del carrito:', { user_id, cart_item_id });
 
       if (!cart_item_id) {
         res.status(400).json({
@@ -371,8 +368,11 @@ export class CartController {
         return;
       }
 
+      // Convertir user_id a string para que coincida con la base de datos
+      const userIdString = user_id.toString();
+      
       // Eliminar item
-      const updatedCart = await this.cartRepository.removeItem(validUserId, cart_item_id);
+      const updatedCart = await this.cartRepository.removeItem(userIdString, cart_item_id);
 
       if (!updatedCart) {
         res.status(404).json({
@@ -413,6 +413,7 @@ export class CartController {
         success: true,
         message: 'Producto eliminado del carrito exitosamente',
         data: {
+          user_id,
           items: removeFormattedItems,
           total: removeTotal,
           is_digital_only: removeIsDigitalOnly
@@ -430,23 +431,25 @@ export class CartController {
   }
 
   // DELETE /api/cart - Vaciar el carrito
-  async clearCart(req: Request, res: Response): Promise<void> {
+  async clearCart(_req: Request, res: Response): Promise<void> {
     try {
-      let user_id = req.headers['user-id'] as string; // Obtener desde headers
+      const { user_id } = _req.body;
+      
+      if (!user_id) {
+        res.status(400).json({
+          success: false,
+          message: 'El user_id es requerido en el body'
+        });
+        return;
+      }
 
       console.log('🛒 Vaciando carrito:', user_id);
 
-      // Si no hay user_id, usar 'anonymous' para desarrollo
-      if (!user_id) {
-        console.log('⚠️ No se proporcionó user-id, usando "anonymous" para desarrollo');
-        user_id = 'anonymous';
-      }
-
-      // Para desarrollo, usar el user_id tal como viene
-      let validUserId = user_id;
-
+      // Convertir user_id a string para que coincida con la base de datos
+      const userIdString = user_id.toString();
+      
       // Vaciar carrito
-      const success = await this.cartRepository.clearCart(validUserId);
+      const success = await this.cartRepository.clearCart(userIdString);
 
       if (!success) {
         res.status(404).json({
@@ -462,6 +465,7 @@ export class CartController {
         success: true,
         message: 'Carrito vaciado exitosamente',
         data: {
+          user_id,
           items: [],
           total: 0,
           is_digital_only: false

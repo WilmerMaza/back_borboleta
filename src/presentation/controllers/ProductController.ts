@@ -26,7 +26,7 @@ export class ProductController {
       console.log('📦 Datos recibidos en el controlador:', req.body);
       console.log('💰 Precio recibido:', req.body.price, 'Tipo:', typeof req.body.price);
 
-      // Validar que el precio sea un número válido
+    
       if (req.body.price === undefined || req.body.price === null) {
         throw new Error('El precio es requerido');
       }
@@ -55,7 +55,7 @@ export class ProductController {
     } catch (error: any) {
       console.error('❌ Error al crear producto:', error.message);
       
-      // Manejar errores de validación de Mongoose
+    
       if (error instanceof mongoose.Error.ValidationError) {
         const validationErrors = Object.values(error.errors).map(err => err.message);
         res.status(400).json({

@@ -77,7 +77,7 @@ cartSchema.pre('save', function(next) {
   let subtotal = 0;
   
   this.items.forEach((item: any) => {
-    subtotal += item.total;
+    subtotal += item.sub_total || 0;
   });
   
   this.subtotal = subtotal;

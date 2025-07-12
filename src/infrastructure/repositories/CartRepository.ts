@@ -142,7 +142,7 @@ export class CartRepository implements ICartRepository {
 
       console.log('🛒 Carrito encontrado con items:', cart.items.map((item: any) => ({
         _id: item._id.toString(),
-        product_id: item.product_id.toString(),
+        numeric_id: item.numeric_id,
         quantity: item.quantity
       })));
 
@@ -195,7 +195,7 @@ export class CartRepository implements ICartRepository {
 
       console.log('🛒 Carrito encontrado con items:', cart.items.map((item: any) => ({
         _id: item._id.toString(),
-        product_id: item.product_id.toString(),
+        numeric_id: item.numeric_id,
         quantity: item.quantity
       })));
 
