@@ -53,9 +53,9 @@ export class CheckoutService {
         }
 
         // Validar stock (solo si el producto tiene control de stock habilitado)
-        if (dbProduct.stock !== undefined && typeof dbProduct.stock === 'number' && dbProduct.stock > 0 && dbProduct.stock < product.quantity) {
-          throw new Error(`Stock insuficiente para ${dbProduct.name}. Disponible: ${dbProduct.stock}`);
-        }
+        // if (dbProduct.stock !== undefined && typeof dbProduct.stock === 'number' && dbProduct.stock > 0 && dbProduct.stock < product.quantity) {
+        //   throw new Error(`Stock insuficiente para ${dbProduct.name}. Disponible: ${dbProduct.stock}`);
+        // }
 
         // Calcular precios
         const price = dbProduct.price || 0;
@@ -64,15 +64,6 @@ export class CheckoutService {
         const total = sale_price * product.quantity;
         const itemDiscount = (price - sale_price) * product.quantity;
 
-        console.log('💰 Cálculos del producto:', {
-          name: dbProduct.name,
-          price,
-          discount,
-          sale_price,
-          quantity: product.quantity,
-          total,
-          itemDiscount
-        });
 
         validatedProducts.push({
           ...product,
@@ -155,10 +146,7 @@ export class CheckoutService {
 
   private async calculateCouponDiscount(coupon?: string | null, subtotal: number = 0): Promise<number> {
     if (!coupon) return 0;
-
-    // TODO: Implementar validación de cupones
-    console.log('🎫 Validando cupón:', coupon);
-    
+   
     // Simulación de descuento de cupón (10% del subtotal)
     return subtotal * 0.10;
   }
@@ -166,9 +154,6 @@ export class CheckoutService {
   private calculatePointsDiscount(usePoints: boolean, subtotal: number): number {
     if (!usePoints) return 0;
 
-    // TODO: Implementar sistema de puntos
-    console.log('⭐ Calculando descuento por puntos');
-    
     // Simulación: 100 puntos = $1 de descuento
     const availablePoints = 500; // TODO: Obtener puntos del usuario
     const pointsValue = availablePoints / 100;
@@ -181,7 +166,6 @@ export class CheckoutService {
     if (!useWallet) return 0;
 
     // TODO: Implementar sistema de wallet
-    console.log('💳 Calculando descuento por wallet');
     
     // Simulación: $50 disponibles en wallet
     const walletBalance = 50;

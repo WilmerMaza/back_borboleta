@@ -15,7 +15,7 @@ export class SettingThemeService implements ISettingThemeService {
   private async fillProductsIds(content: any): Promise<any> {
     const products = await this.productRepository.findAll({ skip: 0, limit: 1000 });
     const productIds = products
-      .map(prod => prod.numeric_id)
+      .map(prod => prod.id)
       .filter(id => typeof id === 'number');
 
     const options = JSON.parse(JSON.stringify(content));

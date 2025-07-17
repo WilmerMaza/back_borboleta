@@ -132,22 +132,16 @@ async function createTestProducts() {
       // Crear el producto (el numeric_id se generará automáticamente)
       const newProduct = new ProductModel(productData);
       const savedProduct = await newProduct.save();
-      
-      console.log(`✅ Producto ${i + 1} creado:`, {
-        name: savedProduct.name,
-        numeric_id: savedProduct.numeric_id,
-        price: savedProduct.price,
-        sale_price: savedProduct.sale_price
-      });
+ 
     }
 
     console.log('🎉 Todos los productos de prueba han sido creados exitosamente!');
     console.log('📋 Lista de productos creados:');
     
     // Mostrar todos los productos creados
-    const allProducts = await ProductModel.find().sort({ numeric_id: 1 });
+    const allProducts = await ProductModel.find().sort({ id: 1 });
     allProducts.forEach(product => {
-      console.log(`   ID: ${product.numeric_id} | ${product.name} | $${product.sale_price}`);
+      console.log(`   ID: ${product.id} | ${product.name} | $${product.sale_price}`);
     });
 
   } catch (error) {

@@ -21,7 +21,7 @@ export class SettingsService implements ISettingsService {
 
     const categories = await this.categoryRepository.findAll();
     const categoryIds = categories
-      .map(cat => cat.numeric_id)
+      .map(cat => cat.id)
       .filter(id => typeof id === 'number');
 
     

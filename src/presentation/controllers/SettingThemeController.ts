@@ -29,7 +29,7 @@ export class SettingThemeController {
     try {
       const { slug } = req.params;
       const theme = await this.settingThemeService.getThemeBySlug(slug);
-      res.json({ success: true, data: theme });
+      res.json({  ...theme, success: true });
     } catch (error: any) {
       if (error.message.includes('no encontrado')) {
         res.status(404).json({ success: false, message: error.message });

@@ -1,104 +1,63 @@
-import mongoose from 'mongoose';
-import slugify from 'slugify';
-import { ICategory } from '../../../domain/entities/Category';
+import mongoose, { Schema, Document } from "mongoose";
+import { ICategory } from "../../../domain/entities/Category";
+const AutoIncrement = require("mongoose-sequence")(mongoose);
 
-const categorySchema = new mongoose.Schema({
-  name: { 
-    type: String, 
-    required: true,
-    trim: true
+type ICategoryWithoutId = Omit<ICategory, "id">;
+
+export interface ICategoryModel extends ICategoryWithoutId, Document {
+  id: number;
+  populateSubcategories: () => Promise<ICategoryModel>;
+}
+
+const categorySchema = new Schema<ICategoryModel>(
+  {
+    name: { type: String, required: true, trim: true },
+    slug: { type: String, unique: true, sparse: true },
+    description: { type: String, trim: true },
+    type: { type: String, default: "product" },
+    parent_id: { type: Schema.Types.ObjectId, ref: "Category", default: null },
+    category_image_id: { type: Number, ref: "Attachment" },
+    category_icon_id: { type: Number, ref: "Attachment" },
+    category_meta_image_id: { type: Number, ref: "Attachment" },
+    commission_rate: {
+      type: Number,
+      min: [0, "La comisión no puede ser negativa"],
+      max: [100, "La comisión no puede ser mayor al 100%"],
+    },
+    products_count: { type: Number, default: 0 },
+    meta_title: { type: String, trim: true },
+    meta_description: { type: String, trim: true },
+    status: { type: Number, default: 1 },
+    created_by_id: { type: Number },
+    deleted_at: { type: Date, default: null },
+
+    id: { type: Number, unique: true, sparse: true }, // autoincremental
   },
-  slug: { 
-    type: String, 
-    unique: true,
-    sparse: true
-  },
-  description: { 
-    type: String,
-    trim: true
-  },
-  type: { 
-    type: String,
-    default: 'product'
-  },
-  parent_id: { 
-    type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null
-  },
-  category_image_id: { 
-    type: Number
-  },
-  category_icon_id: { 
-    type: Number
-  },
-  commission_rate: { 
-    type: Number,
-    min: [0, 'La comisión no puede ser negativa'],
-    max: [100, 'La comisión no puede ser mayor al 100%']
-  },
-  category_meta_image_id: { 
-    type: Number
-  },
-  meta_title: { 
-    type: String,
-    trim: true
-  },
-  meta_description: { 
-    type: String,
-    trim: true
-  },
-  status: { 
-    type: Boolean, 
-    default: true 
-  },
-  created_by_id: { 
-    type: Number
-  },
-  numeric_id: {
-    type: Number,
-    unique: true,
-    sparse: true
+  {
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
-}, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+);
+
+// Virtual para subcategorías
+categorySchema.virtual("subcategories", {
+  ref: "Category",
+  localField: "_id",
+  foreignField: "parent_id",
 });
 
-
-categorySchema.virtual('subcategories', {
-  ref: 'Category',
-  localField: '_id',
-  foreignField: 'parent_id'
-});
-
-
-categorySchema.pre('save', async function (next) {
-  if (!this.slug && this.name) {
-    let baseSlug = slugify(this.name, { lower: true, strict: true });
-    let uniqueSlug = baseSlug;
-    let counter = 1;
-
-    while (await mongoose.models.Category.findOne({ slug: uniqueSlug })) {
-      uniqueSlug = `${baseSlug}-${counter++}`;
-    }
-
-    this.slug = uniqueSlug;
-  }
-
-  // Asignar numeric_id automáticamente si no existe
-  if (!this.numeric_id) {
-    const last = await mongoose.models.Category.findOne({ numeric_id: { $exists: true } })
-      .sort({ numeric_id: -1 })
-      .select('numeric_id');
-    this.numeric_id = last && last.numeric_id ? last.numeric_id + 1 : 1;
-  }
-
-  next();
-});
-
-
-categorySchema.methods.populateSubcategories = async function() {
-  return await this.populate('subcategories');
+categorySchema.methods.populateSubcategories = async function () {
+  return await this.populate("subcategories");
 };
 
-export default mongoose.model<ICategory & mongoose.Document>('Category', categorySchema); 
+// Plugin de autoincremento
+categorySchema.plugin(AutoIncrement, {
+  inc_field: "id",
+  id: "category_id_counter",
+});
+
+export default mongoose.model<ICategoryModel>("Category", categorySchema);
