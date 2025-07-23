@@ -1,0 +1,14 @@
+version: '3.9'
+services:
+
+  borboleta:
+    build:
+      context: .
+      dockerfile: dockerfile
+    ports:
+      - '3001:3001'
+    environment:
+      MONGODB_URI: 'mongodb+srv://alejandraalfaro:EpkGssvva00tUGxP@borboleta.egefkn1.mongodb.net/?retryWrites=true&w=majority&appName=Borboleta'
+      PORT: 3001
+    restart: always
+
