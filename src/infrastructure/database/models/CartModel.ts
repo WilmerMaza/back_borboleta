@@ -3,50 +3,50 @@ import mongoose from 'mongoose';
 import { Cart } from '../../../domain/entities/Cart';
 
 const cartItemSchema = new mongoose.Schema({
-  numeric_id: {
+  id: {
     type: Number,
-    required: true
+    unique: true,
+    sparse: true,
   },
   product_id: {
-    type: Number
+    type: Number,
   },
   variation_id: {
     type: String,
-    default: null
+    default: null,
   },
   wholesale_price: {
     type: Number,
-    default: null
+    default: null,
   },
   consumer_id: {
     type: String,
-    default: null
+    default: null,
   },
   quantity: {
     type: Number,
     required: true,
-    min: 1
+    min: 1,
   },
   sub_total: {
     type: Number,
-
   },
   product: {
     type: Object,
-    default: {}
+    default: {},
   },
   variation: {
     type: Object,
-    default: {}
+    default: {},
   },
   created_by_id: {
     type: String,
-    default: null
+    default: null,
   },
   deleted_at: {
     type: Date,
-    default: null
-  }
+    default: null,
+  },
 });
 
 const cartSchema = new mongoose.Schema({
@@ -77,7 +77,7 @@ cartSchema.pre('save', function(next) {
   let subtotal = 0;
   
   this.items.forEach((item: any) => {
-    subtotal += item.total;
+    subtotal += item.sub_total || 0;
   });
   
   this.subtotal = subtotal;

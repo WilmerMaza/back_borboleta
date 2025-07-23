@@ -1,120 +1,109 @@
-import mongoose from 'mongoose'
-import slugify from 'slugify'
-import { IProduct } from '../../../domain/entities/Product'
+import mongoose, { Schema, Document } from "mongoose";
+import { IProduct } from "src/domain/entities/Product";
+const AutoIncrement = require("mongoose-sequence")(mongoose);
 
-const productSchema = new mongoose.Schema({
-  numeric_id: {
-    type: Number,
-    unique: true
+interface IProductModel extends Omit<IProduct, "id">, Document {
+  id: number;
+}
+
+const productSchema = new Schema<IProductModel>(
+  {
+    name: { type: String, required: true },
+    short_description: { type: String },
+    description: { type: String },
+    type: { type: String },
+    unit: { type: String },
+    weight: { type: Number },
+    quantity: { type: Number },
+    price: { type: Number, required: true },
+    sale_price: { type: Number },
+    discount: { type: Number },
+    is_featured: { type: Number },
+    shipping_days: { type: Number },
+    is_cod: { type: Number },
+    is_free_shipping: { type: Number },
+    is_sale_enable: { type: Number },
+    is_return: { type: Number },
+    is_trending: { type: Number },
+    is_approved: { type: Number },
+    is_external: { type: Number },
+    external_url: { type: String },
+    external_button_text: { type: String },
+    sale_starts_at: { type: Date },
+    sale_expired_at: { type: Date },
+    sku: { type: String },
+    is_random_related_products: { type: Number },
+    stock_status: { type: String },
+    meta_title: { type: String },
+    meta_description: { type: String },
+    product_thumbnail_id: { type: Number },
+    product_meta_image_id: { type: Number },
+    size_chart_image_id: { type: Number },
+    estimated_delivery_text: { type: String },
+    return_policy_text: { type: String },
+    safe_checkout: { type: Boolean },
+    secure_checkout: { type: Boolean },
+    social_share: { type: Boolean },
+    encourage_order: { type: Boolean },
+    encourage_view: { type: Boolean },
+    slug: { type: String, unique: true },
+    status: { type: Number },
+    store_id: { type: Number },
+    created_by_id: { type: Number },
+    tax_id: { type: Number },
+    preview_type: { type: String },
+    product_type: { type: String },
+    separator: { type: String },
+    is_licensable: { type: Boolean },
+    license_type: { type: String },
+    preview_url: { type: String },
+    watermark: { type: Boolean },
+    watermark_position: { type: String },
+    brand_id: { type: Number },
+    watermark_image_id: { type: Number },
+    wholesale_price_type: { type: String },
+    is_licensekey_auto: { type: Number },
+    preview_audio_file_id: { type: Number },
+    preview_video_file_id: { type: Number },
+    deleted_at: { type: Date },
+    created_at: { type: Date, default: Date.now },
+    updated_at: { type: Date, default: Date.now },
+    orders_count: { type: Number },
+    reviews_count: { type: Number },
+    can_review: { type: Boolean },
+    order_amount: { type: Number },
+    is_wishlist: { type: Boolean },
+    rating_count: { type: Number },
+    review_ratings: [{ type: Number }],
+    related_products: [{ type: Number }],
+    cross_sell_products: [{ type: Number }],
+
+    // Asociaciones (guardamos solo los IDs, los detalles se pueden poblar)
+    wholesales: [{ type: Schema.Types.Mixed }],
+    variations: [{ type: Schema.Types.ObjectId, ref: "Variation" }],
+    product_thumbnail: { type: Schema.Types.ObjectId, ref: "Attachment" },
+    product_galleries: [{ type: Schema.Types.ObjectId, ref: "Attachment" }],
+    attributes: [{ type: Schema.Types.ObjectId, ref: "Attribute" }],
+    categories: [{ type: Schema.Types.ObjectId, ref: "Category" }],
+    tags: [{ type: Schema.Types.ObjectId, ref: "Tag" }],
+    brand: { type: Schema.Types.ObjectId, ref: "Brand" },
+    store: { type: Schema.Types.ObjectId, ref: "Store" },
+    reviews: [{ type: Schema.Types.Mixed }],
+    similar_products: [{ type: Schema.Types.ObjectId, ref: "Product" }],
+    cross_products: [{ type: Schema.Types.Mixed }],
   },
-  name: { type: String, required: true },
-  slug: { type: String, unique: true },
-  description: { type: String },
-  type: { type: String },
-  product_thumbnail_id: { type: Number},
-  watermark: { type: Boolean, default: false },
-  watermark_position: { type: String},
-  watermark_image_id: { type: Number }, 
-  product_galleries_id: [{ type: Number }],
-  unit: { type: String },
-  weight: { type: Number }, 
-  price: { 
-    type: Number, 
-    required: true,
-    min: [0, 'El precio no puede ser negativo'],
-    validate: {
-      validator: function(v: number) {
-        return typeof v === 'number' && !isNaN(v) && v >= 0;
-      },
-      message: 'El precio debe ser un número válido mayor o igual a 0'
-    }
-  },
-  sale_price: { type: Number },
-  discount: { type: Number },
-  wholesale_price_type: { type: String },
-  is_sale_enable: { type: Boolean, default: false },
-  sale_starts_at: { type: Date },
-  sale_expired_at: { type: Date },
-  sku: { type: String},
-  stock_status: { type: String  },
-  stock: { type: Number, default: 0 },
-  visible_time: { type: String },
-  quantity: { type: Number, default: 0 },
-  store_id: { type: Number},
-  size_chart_image_id: { type: Number },
-  estimated_delivery_text: { type: String },
-  return_policy_text: { type: String },
-  safe_checkout: { type: Boolean, default: true },
-  secure_checkout: { type: Boolean, default: true },
-  social_share: { type: Boolean, default: true },
-  encourage_order: { type: Boolean, default: false },
-  encourage_view: { type: Boolean, default: false },
-  is_free_shipping: { type: Boolean, default: false },
-  is_featured: { type: Boolean, default: false },
-  is_trending: { type: Boolean, default: false },
-  is_return: { type: Boolean, default: false },
-  shipping_days: { type: Number },
-  tax_id: { type: Number },
-  status: { type: Boolean, default: true },
-  meta_title: { type: String },
-  meta_description: { type: String },
-  product_meta_image_id: { type: Number },
-  brand_id: { type: Number }, 
-  store_name: { type: String },
-  orders_count: { type: mongoose.Schema.Types.Mixed },
-  order_amount: { type: mongoose.Schema.Types.Mixed },
-  attribute_values: [{ type: mongoose.Schema.Types.Mixed }],
-  attributes_ids: [{ type: Number }],
-  is_random_related_products: { type: Boolean, default: false },
-  digital_file_ids: [{ type: Number }],
-  is_licensable: { type: Boolean, default: false },
-  is_licensekey_auto: { type: String },
-  license_key: { type: String },
-  separator: { type: String },
-  preview_type: { type: String },
-  preview_audio_file_id: { type: Number },
-  preview_video_file_id: { type: Number },
-  preview_url: { type: String },
-  is_external: { type: Boolean, default: false },
-  external_url: { type: String },
-  external_button_text: { type: String },
-  related_products: [{ type: Number }],
-  cross_sell_products: [{ type: Number }],
-  created_by_id: { type: Number }, 
-  is_approved: { type: Boolean, default: false },
-  total_in_approved_products: { type: Number, default: 0 },
-  published_at: { type: Date }
-}, {
-  timestamps: true
-})
-
-
-productSchema.pre('save', async function (next) {
-  console.log('🛠️ Middleware pre-save ejecutado para producto:', this.name);
-  console.log('🛠️ numeric_id actual:', this.numeric_id);
-  
-  if (!this.numeric_id) {
-    console.log('🛠️ Buscando último producto con numeric_id...');
-    const lastProduct = await mongoose.models.Product.findOne({ numeric_id: { $exists: true } }).sort({ numeric_id: -1 });
-    console.log('🛠️ Último producto encontrado:', lastProduct ? { id: lastProduct._id, numeric_id: lastProduct.numeric_id } : 'No hay productos con numeric_id');
-    
-    this.numeric_id = lastProduct ? lastProduct.numeric_id + 1 : 1;
-    console.log('🆕 numeric_id asignado:', this.numeric_id);
+  {
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
   }
-  
- 
-  if (!this.slug && this.name) {
-    let baseSlug = slugify(this.name, { lower: true, strict: true })
-    let uniqueSlug = baseSlug
-    let counter = 1
+);
 
-    while (await mongoose.models.Product.findOne({ slug: uniqueSlug })) {
-      uniqueSlug = `${baseSlug}-${counter++}`
-    }
+// Auto-increment para campo `id`
+productSchema.plugin(AutoIncrement, {
+  inc_field: "id",
+  id: "product_id_counter",
+});
 
-    this.slug = uniqueSlug
-  }
-  next()
-})
-
-export default mongoose.model<IProduct & mongoose.Document>('Product', productSchema)
+export default mongoose.model<IProductModel>("Product", productSchema);

@@ -1,37 +1,42 @@
-import mongoose from 'mongoose';
-import { IOrder } from '../../../domain/entities/Order';
+import mongoose from "mongoose";
+import { IOrder } from "../../../domain/entities/Order";
 
 const orderItemSchema = new mongoose.Schema({
+  id: {
+    type: Number,
+    unique: true,
+    sparse: true,
+  },
   product_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product',
-    required: true
+    ref: "Product",
+    required: true,
   },
   variation_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'ProductVariation'
+    ref: "ProductVariation",
   },
   quantity: {
     type: Number,
     required: true,
-    min: 1
+    min: 1,
   },
   price: {
     type: Number,
-    required: true
+    required: true,
   },
   sale_price: {
     type: Number,
-    required: true
+    required: true,
   },
   discount: {
     type: Number,
-    default: 0
+    default: 0,
   },
   total: {
     type: Number,
-    required: true
-  }
+    required: true,
+  },
 });
 
 const addressSchema = new mongoose.Schema({
@@ -42,80 +47,90 @@ const addressSchema = new mongoose.Schema({
   city: { type: String, required: true },
   state: { type: String, required: true },
   country: { type: String, required: true },
-  postal_code: { type: String, required: true }
+  postal_code: { type: String, required: true },
 });
 
-const orderSchema = new mongoose.Schema({
-  order_number: {
-    type: String,
-    unique: true,
-    sparse: true
+const orderSchema = new mongoose.Schema(
+  {
+    order_number: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    store_id: {
+      type: Number,
+      required: true,
+    },
+    items: [orderItemSchema],
+    total_amount: {
+      type: Number,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: [
+        "pending",
+        "confirmed",
+        "processing",
+        "shipped",
+        "delivered",
+        "cancelled",
+      ],
+      default: "pending",
+    },
+    payment_method: {
+      type: String,
+      required: true,
+    },
+    shipping_address: addressSchema,
+    billing_address: addressSchema,
+    notes: String,
+    tracking_number: String,
+    estimated_delivery: Date,
+    shipping_cost: {
+      type: Number,
+      default: 0,
+    },
+    tax_amount: {
+      type: Number,
+      default: 0,
+    },
+    discount_amount: {
+      type: Number,
+      default: 0,
+    },
+    subtotal: {
+      type: Number,
+      default: 0,
+    },
+    payment_status: {
+      type: String,
+      enum: ["pending", "paid", "failed", "refunded"],
+      default: "pending",
+    },
   },
-  user_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  store_id: {
-    type: Number,
-    required: true
-  },
-  items: [orderItemSchema],
-  total_amount: {
-    type: Number,
-    required: true
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
-    default: 'pending'
-  },
-  payment_method: {
-    type: String,
-    required: true
-  },
-  shipping_address: addressSchema,
-  billing_address: addressSchema,
-  notes: String,
-  tracking_number: String,
-  estimated_delivery: Date,
-  shipping_cost: {
-    type: Number,
-    default: 0
-  },
-  tax_amount: {
-    type: Number,
-    default: 0
-  },
-  discount_amount: {
-    type: Number,
-    default: 0
-  },
-  subtotal: {
-    type: Number,
-    default: 0
-  },
-  payment_status: {
-    type: String,
-    enum: ['pending', 'paid', 'failed', 'refunded'],
-    default: 'pending'
+  {
+    timestamps: true,
   }
-}, {
-  timestamps: true
-});
+);
 
 // Middleware para generar número de orden automáticamente
-orderSchema.pre('save', async function (next) {
+orderSchema.pre("save", async function (next) {
   if (this.isNew && !this.order_number) {
     try {
       const OrderModel = this.constructor as any;
       const count = await OrderModel.countDocuments();
       // Generar número secuencial simple: 001, 002, 003, etc.
-      const orderNumber = (count + 1).toString().padStart(3, '0');
+      const orderNumber = (count + 1).toString().padStart(3, "0");
       this.order_number = orderNumber;
-      console.log('🔄 Generando order_number:', this.order_number);
+      console.log("🔄 Generando order_number:", this.order_number);
     } catch (error) {
-      console.error('❌ Error generando order_number:', error);
+      console.error("❌ Error generando order_number:", error);
       // Fallback: usar timestamp si hay error
       this.order_number = Date.now().toString();
     }
@@ -123,4 +138,4 @@ orderSchema.pre('save', async function (next) {
   next();
 });
 
-export default mongoose.model<IOrder & mongoose.Document>('Order', orderSchema); 
+export default mongoose.model<IOrder & mongoose.Document>("Order", orderSchema);

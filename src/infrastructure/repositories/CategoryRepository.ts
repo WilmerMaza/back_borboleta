@@ -1,6 +1,6 @@
-import { injectable } from 'tsyringe';
-import CategoryModel from '../database/models/CategoryModel';
-import { ICategory } from '../../domain/entities/Category';
+import { injectable } from "tsyringe";
+import CategoryModel from "../database/models/CategoryModel";
+import { ICategory } from "../../domain/entities/Category";
 
 @injectable()
 export class CategoryRepository {
@@ -10,29 +10,33 @@ export class CategoryRepository {
   }
 
   async findById(id: string): Promise<ICategory | null> {
-    return await CategoryModel.findById(id).populate('subcategories');
+    return await CategoryModel.findById(id).populate("subcategories");
+  }
+
+  async findByAutoIncrementId(id: number): Promise<ICategory | null> {
+    return await CategoryModel.findOne({ id }).populate("subcategories");
   }
 
   async findBySlug(slug: string): Promise<ICategory | null> {
-    return await CategoryModel.findOne({ slug }).populate('subcategories');
+    return await CategoryModel.findOne({ slug }).populate("subcategories");
   }
 
   async findAll(): Promise<ICategory[]> {
     try {
-      const categories = await CategoryModel.find({ parent_id: null }).populate('subcategories');
-      
+      const categories = await CategoryModel.find({ parent_id: null }).populate(
+        "subcategories"
+      );
+
       // Transformar _id a id para compatibilidad con el frontend
-      return categories.map(category => {
+      return categories.map((category) => {
         const categoryObj = category.toObject();
         return {
           ...categoryObj,
-          id: categoryObj._id,
-          numeric_id: categoryObj.numeric_id
         };
       });
     } catch (error) {
-      console.error('❌ Error en CategoryRepository.findAll:', error);
-      throw new Error('Error al obtener categorías de la base de datos');
+      console.error("❌ Error en CategoryRepository.findAll:", error);
+      throw new Error("Error al obtener categorías de la base de datos");
     }
   }
 
@@ -40,8 +44,13 @@ export class CategoryRepository {
     return await CategoryModel.find({ parent_id: parentId });
   }
 
-  async update(id: string, categoryData: Partial<ICategory>): Promise<ICategory | null> {
-    return await CategoryModel.findByIdAndUpdate(id, categoryData, { new: true });
+  async update(
+    id: string,
+    categoryData: Partial<ICategory>
+  ): Promise<ICategory | null> {
+    return await CategoryModel.findByIdAndUpdate(id, categoryData, {
+      new: true,
+    });
   }
 
   async delete(id: string): Promise<boolean> {
@@ -52,4 +61,4 @@ export class CategoryRepository {
   async findByName(name: string): Promise<ICategory | null> {
     return await CategoryModel.findOne({ name });
   }
-} 
+}

@@ -33,11 +33,8 @@ export class CartRepository implements ICartRepository {
       
       if (!cart) return null;
       
-      const cartObj = cart.toObject();
-      return {
-        ...cartObj,
-        id: cartObj._id.toString()
-      };
+
+      return cart;
     } catch (error) {
       console.error('❌ Error en CartRepository.findByUserId:', error);
       throw new Error('Error al obtener el carrito de la base de datos');
@@ -95,7 +92,7 @@ export class CartRepository implements ICartRepository {
       // Verificar si el producto ya existe en el carrito
       const existingItemIndex = cart.items.findIndex(
         (cartItem: any) => 
-          cartItem.numeric_id === item.numeric_id &&
+          cartItem.id === item.id &&
           cartItem.variation_id?.toString() === item.variation_id?.toString()
       );
 
@@ -109,15 +106,15 @@ export class CartRepository implements ICartRepository {
         const unitPrice = cart.items[existingItemIndex].sub_total / oldQuantity;
         cart.items[existingItemIndex].sub_total = unitPrice * newQuantity;
         
-        console.log('🛒 Producto existente, cantidad actualizada:', { oldQuantity, newQuantity, unitPrice });
+     
       } else {
         // Agregar nuevo item
         cart.items.push(item);
-        console.log('🛒 Nuevo producto agregado al carrito');
+       
       }
 
       const savedCart = await cart.save();
-      console.log('🛒 Carrito actualizado:', savedCart);
+     
       
       const cartObj = savedCart.toObject();
       return {
@@ -132,7 +129,7 @@ export class CartRepository implements ICartRepository {
 
   async updateItem(userId: string, itemId: string, quantity: number): Promise<Cart | null> {
     try {
-      console.log('🛒 Actualizando cantidad del item:', { userId, itemId, quantity });
+    
       
       const cart = await CartModel.findOne({ user_id: userId });
       
@@ -140,12 +137,7 @@ export class CartRepository implements ICartRepository {
         throw new Error('Carrito no encontrado');
       }
 
-      console.log('🛒 Carrito encontrado con items:', cart.items.map((item: any) => ({
-        _id: item._id.toString(),
-        product_id: item.product_id.toString(),
-        quantity: item.quantity
-      })));
-
+  
       const itemIndex = cart.items.findIndex((item: any) => item._id.toString() === itemId);
       
       if (itemIndex === -1) {
@@ -193,11 +185,7 @@ export class CartRepository implements ICartRepository {
         throw new Error('Carrito no encontrado');
       }
 
-      console.log('🛒 Carrito encontrado con items:', cart.items.map((item: any) => ({
-        _id: item._id.toString(),
-        product_id: item.product_id.toString(),
-        quantity: item.quantity
-      })));
+
 
       const itemIndex = cart.items.findIndex((item: any) => item._id.toString() === itemId);
       

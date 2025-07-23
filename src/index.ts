@@ -11,6 +11,7 @@ import orderRoutes from './presentation/routes/order.routes';
 import cartRoutes from './presentation/routes/cart.routes';
 import checkoutRoutes from './presentation/routes/checkout.routes';
 import settingsRoutes from './presentation/routes/settings.routes';
+import settingThemeRoutes from './presentation/routes/setting-theme.routes';
 import connectDB from './infrastructure/database/config/database';
 
 dotenv.config();
@@ -40,6 +41,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/setting-theme', settingThemeRoutes);
 
 // Ruta de prueba
 app.get('/', (_req, res) => {

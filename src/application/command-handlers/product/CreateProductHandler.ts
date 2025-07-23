@@ -10,10 +10,7 @@ export class CreateProductHandler {
   ) {}
 
   async handle(command: CreateProductCommand): Promise<IProduct> {
-    const productData = command.data;
-    console.log('📦 Datos recibidos en el handler:', productData);
-    console.log('💰 Precio en el handler:', productData.price, 'Tipo:', typeof productData.price);
 
-    return await this.productRepository.create(productData);
+    return await this.productRepository.create(command.data);
   }
 }
