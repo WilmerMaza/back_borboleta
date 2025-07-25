@@ -1,6 +1,7 @@
 import { ISettingsResponse } from './ISettingsResponse';
+import { Request } from "express";
 
 export interface ISettingsService {
-  getSettings(): Promise<ISettingsResponse>;
+  getSettings(request:Request): Promise<ISettingsResponse>;
   updateSettings(options: any): Promise<ISettingsResponse>;
 } 

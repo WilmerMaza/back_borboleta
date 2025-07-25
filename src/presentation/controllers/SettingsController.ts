@@ -10,9 +10,9 @@ export class SettingsController {
   }
 
   // GET /api/settings
-  async getSettings(_req: Request, res: Response): Promise<void> {
+  async getSettings(request: Request, res: Response): Promise<void> {
     try {
-      const settings = await this.settingsService.getSettings();
+      const settings = await this.settingsService.getSettings(request);
       res.json({ ...settings });
     } catch (error: any) {
       if (error.message === "Configuración no encontrada") {

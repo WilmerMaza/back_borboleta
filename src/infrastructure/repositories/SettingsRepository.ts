@@ -1,8 +1,8 @@
 import { SettingsModel, ISettings } from '../database/models/SettingsModel';
 
 export class SettingsRepository {
-  async getSettings(): Promise<ISettings | null> {
-    return SettingsModel.findOne({ id: 1 });
+  async getSettings(name:String): Promise<ISettings | null> {
+    return SettingsModel.findOne({ name });
   }
 
   async saveSettings(options: any): Promise<ISettings> {
