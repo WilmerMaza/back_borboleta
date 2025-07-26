@@ -8,13 +8,11 @@ const orderItemSchema = new mongoose.Schema({
     sparse: true,
   },
   product_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Product",
+    type: Number,
     required: true,
   },
   variation_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "ProductVariation",
+    type: String,
   },
   quantity: {
     type: Number,
@@ -58,8 +56,7 @@ const orderSchema = new mongoose.Schema(
       sparse: true,
     },
     user_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      type: Number,
       required: true,
     },
     store_id: {
@@ -124,13 +121,25 @@ orderSchema.pre("save", async function (next) {
   if (this.isNew && !this.order_number) {
     try {
       const OrderModel = this.constructor as any;
-      const count = await OrderModel.countDocuments();
-      // Generar número secuencial simple: 001, 002, 003, etc.
-      const orderNumber = (count + 1).toString().padStart(3, "0");
+      
+      // Buscar el último order_number y extraer el número
+      const lastOrder = await OrderModel.findOne({}, { order_number: 1 })
+        .sort({ order_number: -1 })
+        .limit(1);
+      
+      let nextNumber = 1;
+      if (lastOrder && lastOrder.order_number) {
+        // Extraer el número del último order_number (asumiendo formato "001", "002", etc.)
+        const lastNumber = parseInt(lastOrder.order_number, 10);
+        if (!isNaN(lastNumber)) {
+          nextNumber = lastNumber + 1;
+        }
+      }
+      
+      // Generar número secuencial con padding
+      const orderNumber = nextNumber.toString().padStart(3, "0");
       this.order_number = orderNumber;
-      console.log("🔄 Generando order_number:", this.order_number);
     } catch (error) {
-      console.error("❌ Error generando order_number:", error);
       // Fallback: usar timestamp si hay error
       this.order_number = Date.now().toString();
     }
