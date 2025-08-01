@@ -95,7 +95,16 @@ export class OrderController {
         delivery_description: delivery_description || '',
         delivery_interval: delivery_interval || '',
         points_amount: points_amount || 0,
-        wallet_balance: wallet_balance || 0
+        wallet_balance: wallet_balance || 0,
+        order_status_activities: [{
+          id: 1,
+          status: 'pending',
+          order_id: Date.now(), // Usar timestamp como ID temporal
+          changed_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          deleted_at: null
+        }]
       };
 
       const order = await this.orderRepository.create(orderData);
@@ -134,7 +143,12 @@ export class OrderController {
 
   
       const ordersAdapted = await Promise.all(orders.map(async (order: any) => {
-       
+        console.log('🔍 Orden original:', {
+          id: order.id,
+          order_number: order.order_number,
+          order_status_activities: order.order_status_activities
+        });
+        
         const user = order.user_id ? await UserModel.findOne({ id: order.user_id }) : null;
         const customerName = user ? user.name : '';
    
@@ -209,19 +223,20 @@ export class OrderController {
           profile_image_id: null,
           email_verified_at: ''
         } : null;
-        // Adaptar order_status y order_status_activities (mock)
+        // Adaptar order_status y order_status_activities desde la base de datos
         const order_status = { id: 1, name: order.status || 'pending', sequence: 1, slug: order.status || 'pending' };
-        const order_status_activities = [
-          {
-            id: 1,
-            status: order.status || 'pending',
-            order_id: order.id || order._id || null,
-            changed_at: order.created_at || '',
-            created_at: order.created_at || '',
-            updated_at: order.updated_at || '',
-            deleted_at: null
-          }
-        ];
+        console.log('🔍 Activities antes de procesar:', (order as any).order_status_activities);
+        const order_status_activities = (order as any).order_status_activities && (order as any).order_status_activities.length > 0
+          ? (order as any).order_status_activities
+          : [{
+              id: 1,
+              status: order.status || 'pending',
+              order_id: order.id || order._id || null,
+              changed_at: order.created_at || '',
+              created_at: order.created_at || '',
+              updated_at: order.updated_at || '',
+              deleted_at: null
+            }];
         // Adaptar store (mock)
         const store = { id: order.store_id || null };
         return {
@@ -266,15 +281,7 @@ export class OrderController {
       }));
       const totalPages = Math.ceil(total / limit);
       
-      // Debug adicional
-      console.log('🔍 Debug final:', {
-        total,
-        limit,
-        totalPages,
-        ordersAdaptedLength: ordersAdapted.length,
-        skip,
-        page
-      });
+
       
       res.status(200).json({
         current_page: page,
@@ -411,17 +418,17 @@ export class OrderController {
         email_verified_at: ''
       } : null;
       const order_status = { id: 1, name: order.status || 'pending', sequence: 1, slug: order.status || 'pending' };
-      const order_status_activities = [
-        {
-          id: 1,
-          status: order.status || 'pending',
-          order_id: order.id  || null,
-          changed_at: order.created_at || '',
-          created_at: order.created_at || '',
-          updated_at: order.updated_at || '',
-          deleted_at: null
-        }
-      ];
+      const order_status_activities = (order as any).order_status_activities && (order as any).order_status_activities.length > 0
+        ? (order as any).order_status_activities
+        : [{
+            id: 1,
+            status: order.status || 'pending',
+            order_id: order.id || null,
+            changed_at: order.created_at || '',
+            created_at: order.created_at || '',
+            updated_at: order.updated_at || '',
+            deleted_at: null
+          }];
       const store = { id: order.store_id || null };
       const orderAdapted = {
         id: order.id || order.id || null,
@@ -563,17 +570,17 @@ export class OrderController {
           email_verified_at: ''
         } : null;
         const order_status = { id: 1, name: order.status || 'pending', sequence: 1, slug: order.status || 'pending' };
-        const order_status_activities = [
-          {
-            id: 1,
-            status: order.status || 'pending',
-            order_id: order.id || order._id || null,
-            changed_at: order.created_at || '',
-            created_at: order.created_at || '',
-            updated_at: order.updated_at || '',
-            deleted_at: null
-          }
-        ];
+        const order_status_activities = (order as any).order_status_activities && (order as any).order_status_activities.length > 0
+          ? (order as any).order_status_activities
+          : [{
+              id: 1,
+              status: order.status || 'pending',
+              order_id: order.id || (order as any)._id || null,
+              changed_at: order.created_at || '',
+              created_at: order.created_at || '',
+              updated_at: order.updated_at || '',
+              deleted_at: null
+            }];
         const store = { id: order.store_id || null };
         return {
           id: order.id || order._id || null,

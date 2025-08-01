@@ -95,34 +95,12 @@ export class OrderRepository implements IOrderRepository {
 
   async findAll(params: { skip: number; limit: number }): Promise<IOrder[]> {
     try {
-      console.log('🔍 OrderRepository.findAll - Parámetros:', params);
-      
-      // Verificar el total real antes de la consulta
-      const totalBeforeQuery = await OrderModel.countDocuments();
-      console.log('📊 Total antes de la consulta:', totalBeforeQuery);
-      
-      // Consulta directa sin populate para verificar
-      const ordersDirect = await OrderModel.find()
-        .skip(params.skip)
-        .limit(params.limit)
-        .sort({ created_at: -1 });
-      
-      console.log('📊 Consulta directa sin populate:', ordersDirect.length);
-      
       const orders = await OrderModel.find()
         .populate('user_id', 'name email')
         .populate('items.product_id', 'name price sale_price')
         .skip(params.skip)
         .limit(params.limit)
         .sort({ created_at: -1 });
-      
-      console.log('📊 OrderRepository.findAll - Resultados:', { 
-        skip: params.skip, 
-        limit: params.limit, 
-        ordersFound: orders.length,
-        ordersDirectCount: ordersDirect.length,
-        totalBeforeQuery
-      });
       
       return orders.map(order => {
         const orderObj = order.toObject();
@@ -132,7 +110,6 @@ export class OrderRepository implements IOrderRepository {
         };
       });
     } catch (error) {
-      console.error('❌ Error en OrderRepository.findAll:', error);
       throw new Error('Error al obtener las órdenes de la base de datos');
     }
   }
@@ -169,15 +146,8 @@ export class OrderRepository implements IOrderRepository {
   async count(): Promise<number> {
     try {
       const total = await OrderModel.countDocuments();
-      console.log('📊 OrderRepository.count - Total de órdenes:', total);
-      
-      // Verificar también con una consulta directa
-      const allOrders = await OrderModel.find();
-      console.log('📊 OrderRepository.count - Verificación directa:', allOrders.length);
-      
       return total;
     } catch (error) {
-      console.error('❌ Error en OrderRepository.count:', error);
       throw new Error('Error al contar las órdenes en la base de datos');
     }
   }

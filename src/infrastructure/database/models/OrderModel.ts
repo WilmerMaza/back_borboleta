@@ -48,6 +48,46 @@ const addressSchema = new mongoose.Schema({
   postal_code: { type: String, required: true },
 });
 
+const orderStatusActivitySchema = new mongoose.Schema({
+  id: {
+    type: Number,
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: [
+      "pending",
+      "confirmed", 
+      "processing",
+      "shipped",
+      "out_for_delivery",
+      "delivered",
+      "cancelled"
+    ],
+    required: true,
+  },
+  order_id: {
+    type: Number,
+    required: true,
+  },
+  changed_at: {
+    type: String,
+    default: () => new Date().toISOString(),
+  },
+  created_at: {
+    type: String,
+    default: () => new Date().toISOString(),
+  },
+  updated_at: {
+    type: String,
+    default: () => new Date().toISOString(),
+  },
+  deleted_at: {
+    type: String,
+    default: null,
+  },
+});
+
 const orderSchema = new mongoose.Schema(
   {
     order_number: {
@@ -110,6 +150,7 @@ const orderSchema = new mongoose.Schema(
       enum: ["pending", "paid", "failed", "refunded"],
       default: "pending",
     },
+    order_status_activities: [orderStatusActivitySchema],
   },
   {
     timestamps: true,
@@ -122,26 +163,28 @@ orderSchema.pre("save", async function (next) {
     try {
       const OrderModel = this.constructor as any;
       
-      // Buscar el último order_number y extraer el número
-      const lastOrder = await OrderModel.findOne({}, { order_number: 1 })
+      // Buscar el último order_number numérico pequeño (no timestamps)
+      const lastOrder = await OrderModel.findOne({
+        order_number: { $regex: /^\d{1,3}$/ } // Solo números de 1-3 dígitos
+      }, { order_number: 1 })
         .sort({ order_number: -1 })
         .limit(1);
       
-      let nextNumber = 1;
+      let nextNumber = 0;
       if (lastOrder && lastOrder.order_number) {
-        // Extraer el número del último order_number (asumiendo formato "001", "002", etc.)
+        // Extraer el número del último order_number
         const lastNumber = parseInt(lastOrder.order_number, 10);
         if (!isNaN(lastNumber)) {
           nextNumber = lastNumber + 1;
         }
       }
       
-      // Generar número secuencial con padding
-      const orderNumber = nextNumber.toString().padStart(3, "0");
+      // Generar número secuencial con padding de 2 dígitos
+      const orderNumber = nextNumber.toString().padStart(2, "0");
       this.order_number = orderNumber;
     } catch (error) {
-      // Fallback: usar timestamp si hay error
-      this.order_number = Date.now().toString();
+      // Fallback: usar "00" si hay error
+      this.order_number = "00";
     }
   }
   next();
