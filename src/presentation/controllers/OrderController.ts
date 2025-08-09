@@ -1,289 +1,321 @@
 import { Request, Response } from 'express';
 import { injectable, inject } from 'tsyringe';
 import { OrderRepository } from '../../infrastructure/repositories/OrderRepository';
-import { ProductRepository } from '../../infrastructure/repositories/ProductRepository';
-import mongoose from 'mongoose';
+
+import UserModel from '../../infrastructure/database/models/UserModel';
+
 
 @injectable()
 export class OrderController {
   constructor(
     @inject('OrderRepository') private orderRepository: OrderRepository,
-    @inject('ProductRepository') private productRepository: ProductRepository
+  
   ) {}
 
   async createOrder(req: Request, res: Response): Promise<void> {
     try {
-      const { items, shipping_address, billing_address, payment_method, notes, user_id, store_id } = req.body;
-
-      console.log('🚀 Creando nueva orden:', { items, user_id, store_id });
-
-      // Validar items
-      if (!items || items.length === 0) {
-        res.status(400).json({
-          success: false,
-          message: 'La orden debe tener al menos un producto'
-        });
-        return;
-      }
-
-      // Validar user_id
-      if (!user_id) {
-        res.status(400).json({
-          success: false,
-          message: 'El ID del usuario es requerido'
-        });
-        return;
-      }
-
-      // Validar que user_id sea un ObjectId válido
-      if (!mongoose.Types.ObjectId.isValid(user_id)) {
-        res.status(400).json({
-          success: false,
-          message: 'El ID del usuario debe ser un ObjectId válido (24 caracteres hexadecimales)'
-        });
-        return;
-      }
-
-      // Validar store_id
-      if (!store_id) {
-        res.status(400).json({
-          success: false,
-          message: 'El ID de la tienda es requerido'
-        });
-        return;
-      }
-
-      // Validar payment_method
-      if (!payment_method) {
-        res.status(400).json({
-          success: false,
-          message: 'El método de pago es requerido (ej: credit_card, debit_card, cash, transfer)'
-        });
-        return;
-      }
-
-      // Validar shipping_address
-      if (!shipping_address) {
-        res.status(400).json({
-          success: false,
-          message: 'La dirección de envío es requerida con todos los campos: name, email, phone, address, city, state, country, postal_code'
-        });
-        return;
-      }
-
-      // Validar campos requeridos de shipping_address
-      const requiredShippingFields = ['name', 'email', 'phone', 'address', 'city', 'state', 'country', 'postal_code'];
-      const missingShippingFields = requiredShippingFields.filter(field => !shipping_address[field]);
-      
-      if (missingShippingFields.length > 0) {
-        res.status(400).json({
-          success: false,
-          message: `Campos faltantes en shipping_address: ${missingShippingFields.join(', ')}`
-        });
-        return;
-      }
-
-      // Validar billing_address
-      if (!billing_address) {
-        res.status(400).json({
-          success: false,
-          message: 'La dirección de facturación es requerida con todos los campos: name, email, phone, address, city, state, country, postal_code'
-        });
-        return;
-      }
-
-      // Validar campos requeridos de billing_address
-      const requiredBillingFields = ['name', 'email', 'phone', 'address', 'city', 'state', 'country', 'postal_code'];
-      const missingBillingFields = requiredBillingFields.filter(field => !billing_address[field]);
-      
-      if (missingBillingFields.length > 0) {
-        res.status(400).json({
-          success: false,
-          message: `Campos faltantes en billing_address: ${missingBillingFields.join(', ')}`
-        });
-        return;
-      }
-
-      // Validar que store_id sea un número
-      if (isNaN(Number(store_id))) {
-        res.status(400).json({
-          success: false,
-          message: 'El ID de la tienda debe ser un número válido'
-        });
-        return;
-      }
-
-      const storeIdNumber = Number(store_id);
-
-      // Calcular totales
-      let subtotal = 0;
-      let total_amount = 0;
-      const processedItems = [];
-
-      for (const item of items) {
-        console.log('🛍️ Procesando item:', item);
-
-        // Validar que el item tenga product_id y quantity
-        if (!item.product_id) {
-          res.status(400).json({
-            success: false,
-            message: 'Cada item debe tener un product_id'
-          });
-          return;
-        }
-
-        if (!item.quantity || item.quantity < 1) {
-          res.status(400).json({
-            success: false,
-            message: `La cantidad del item debe ser mayor a 0`
-          });
-          return;
-        }
-
-        // Validar que product_id sea un string válido
-        if (!item.product_id || typeof item.product_id !== 'string') {
-          res.status(400).json({
-            success: false,
-            message: `El product_id debe ser un string válido: ${item.product_id}`
-          });
-          return;
-        }
-
-        // Obtener información del producto
-        const product = await this.productRepository.findById(item.product_id);
-        if (!product) {
-          res.status(404).json({
-            success: false,
-            message: `Producto no encontrado con ID: ${item.product_id}`
-          });
-          return;
-        }
-
-        console.log('✅ Producto encontrado:', { name: product.name, price: product.price, discount: product.discount });
-
-        // Calcular precios
-        const price = product.price || 0;
-        const discount = product.discount || 0;
-        const sale_price = discount > 0 ? price - (price * discount / 100) : price;
-        const item_total = sale_price * item.quantity;
-
-        console.log('💰 Cálculos del item:', { price, discount, sale_price, quantity: item.quantity, item_total });
-
-        processedItems.push({
-          product_id: item.product_id,
-          variation_id: item.variation_id,
-          quantity: item.quantity,
-          price: price,
-          sale_price: sale_price,
-          discount: discount,
-          total: item_total
-        } as any);
-
-        subtotal += item_total;
-      }
-
-      // Calcular total final
-      total_amount = subtotal;
-
-      console.log('💰 Totales calculados:', { subtotal, total_amount });
-
-      // Mapear las direcciones al formato correcto
-      const mappedShippingAddress = {
-        name: shipping_address.name || 'Cliente',
-        email: shipping_address.email || 'cliente@example.com',
-        phone: shipping_address.phone || '0000000000',
-        address: shipping_address.street || shipping_address.address || 'Dirección no especificada',
-        city: shipping_address.city,
-        state: shipping_address.state,
-        country: shipping_address.country,
-        postal_code: shipping_address.zip_code || shipping_address.postal_code || '00000'
-      };
-
-      const mappedBillingAddress = {
-        name: billing_address.name || 'Cliente',
-        email: billing_address.email || 'cliente@example.com',
-        phone: billing_address.phone || '0000000000',
-        address: billing_address.street || billing_address.address || 'Dirección no especificada',
-        city: billing_address.city,
-        state: billing_address.state,
-        country: billing_address.country,
-        postal_code: billing_address.zip_code || billing_address.postal_code || '00000'
-      };
-
-      // Crear la orden con los datos procesados
-      const orderData = {
-        user_id,
-        store_id: storeIdNumber,
-        items: processedItems,
-        total_amount,
+      const {
+        consumer_id,
+        products,
+        shipping_address,
+        billing_address,
+        coupon,
+        points_amount,
+        wallet_balance,
+        delivery_description,
+        delivery_interval,
         payment_method,
-        shipping_address: mappedShippingAddress,
-        billing_address: mappedBillingAddress,
-        notes: notes || '',
-        subtotal: subtotal
-      };
+        notes,
+        tracking_number,
+        estimated_delivery,
+        shipping_cost,
+        tax_amount,
+        total,
+        sub_total,
+        tax_total,
+        shipping_total,
+        coupon_total_discount
+      } = req.body;
 
-      console.log('📝 Datos de la orden a crear:', orderData);
+      // Mapear products a items, guardando todos los campos enviados en el payload y agregando sale_price y total requeridos por el modelo
+      const items = products.map((p: any) => ({
+        product_id: p.pivot?.product_id ?? p.product_id ?? p.id,
+        variation_id: p.pivot?.variation_id ?? p.variation_id ?? null,
+        quantity: p.pivot?.quantity ?? p.quantity ?? 1,
+        name: p.name,
+        price: p.pivot?.single_price ?? p.price ?? 0,
+        sale_price: p.pivot?.sale_price ?? p.sale_price ?? p.pivot?.single_price ?? p.price ?? 0,
+        total: p.pivot?.subtotal ?? p.sub_total ?? (p.pivot?.single_price ?? p.price ?? 0) * (p.pivot?.quantity ?? p.quantity ?? 1),
+        image: p.image,
+        sub_total: p.pivot?.subtotal ?? p.sub_total ?? 0
+      }));
+
+
+
+      // Usar el descuento del frontend o calcularlo
+      let discount_amount = coupon_total_discount || items.reduce((acc: number, item: any) => {
+        if (item.price && item.sale_price) {
+          return acc + ((item.price - item.sale_price) * item.quantity);
+        }
+        if (item.discount) {
+          return acc + (item.discount * item.quantity);
+        }
+        return acc;
+      }, 0);
+      if (coupon && coupon.discount_value && !coupon_total_discount) {
+        discount_amount += coupon.discount_value;
+      }
+
+      // Usar los totales del frontend en lugar de calcularlos
+      let subtotal = sub_total || items.reduce((acc: number, item: any) => acc + (item.sub_total || 0), 0);
+      let total_amount = total || subtotal + (shipping_cost || 0) + (tax_amount || 0) - (discount_amount || 0);
+
+      // Obtener store_id del primer producto (asumiendo que todos los productos son de la misma tienda)
+      const store_id = products[0]?.store_id || 1;
+
+      // Armar el objeto para crear la orden con todos los campos del modelo
+      const orderData = {
+        user_id: consumer_id,
+        store_id,
+        items,
+        total_amount,
+        status: 'pending' as 'pending',
+        payment_method,
+        shipping_address,
+        billing_address,
+        notes: notes || '',
+        tracking_number: tracking_number || '',
+        estimated_delivery: estimated_delivery || null,
+        shipping_cost: shipping_total || shipping_cost || 0,
+        tax_amount: tax_total || tax_amount || 0,
+        discount_amount,
+        subtotal,
+        payment_status: 'pending' as 'pending',
+        coupon: coupon || null,
+        delivery_description: delivery_description || '',
+        delivery_interval: delivery_interval || '',
+        points_amount: points_amount || 0,
+        wallet_balance: wallet_balance || 0,
+        order_status_activities: [{
+          id: 1,
+          status: 'pending',
+          order_id: Date.now(), // Usar timestamp como ID temporal
+          changed_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          deleted_at: null
+        }]
+      };
 
       const order = await this.orderRepository.create(orderData);
-
-      console.log('✅ Orden creada exitosamente:', order.order_number);
 
       res.status(201).json({
         success: true,
         message: 'Orden creada exitosamente',
         data: order
       });
-
+      return;
     } catch (error: any) {
       console.error('❌ Error creando orden:', error);
-      console.error('❌ Stack trace:', error.stack);
-      
-      // Manejar errores de validación de Mongoose
-      if (error instanceof mongoose.Error.ValidationError) {
-        const validationErrors = Object.values(error.errors).map(err => err.message);
-        res.status(400).json({
-          success: false,
-          message: 'Error de validación',
-          details: validationErrors
-        });
-        return;
-      }
-      
       res.status(500).json({
         success: false,
         message: 'Error interno del servidor',
         error: error.message,
         stack: error.stack
       });
+      return;
     }
   }
 
   async getOrders(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseInt(req.query.limit as string) || 14;
       const skip = (page - 1) * limit;
+      
+
       
       const [orders, total] = await Promise.all([
         this.orderRepository.findAll({ skip, limit }),
         this.orderRepository.count()
       ]);
       
+
+  
+      const ordersAdapted = await Promise.all(orders.map(async (order: any) => {
+        console.log('🔍 Orden original:', {
+          id: order.id,
+          order_number: order.order_number,
+          order_status_activities: order.order_status_activities
+        });
+        
+        const user = order.user_id ? await UserModel.findOne({ id: order.user_id }) : null;
+        const customerName = user ? user.name : '';
+   
+        const products = (order.items || []).map((item: any) => ({
+          id: item.product_id,
+          name: item.name,
+          price: item.price,
+          sale_price: item.sale_price,
+          total: item.total,
+          is_return: 0,
+          product_thumbnail_id: null,
+          can_review: false,
+          order_amount: item.total,
+          is_wishlist: false,
+          rating_count: null,
+          review_ratings: [0,0,0,0,0],
+          related_products: [],
+          cross_sell_products: [],
+          pivot: {
+            order_id: order.id ,
+            wholesale_price: 0,
+            variation: item.variation_id || null,
+            quantity: item.quantity,
+            single_price: item.price || item.sale_price || 0,
+            shipping_cost: 0,
+            refund_status: null,
+            product_id: item.product_id,
+            product_type: 'physical',
+            subtotal: item.total || item.sub_total || 0
+          },
+          wholesales: [],
+          variations: [],
+          product_thumbnail: null,
+          product_galleries: [],
+          attributes: [],
+          brand: null,
+          wishlist: [],
+          reviews: []
+        }));
+        // Adaptar direcciones
+        const adaptAddress = (address: any) => address ? {
+          id: address.id || null,
+          city: address.city || '',
+          phone: address.phone || '',
+          state: address.state || null,
+          title: address.title || '',
+          street: address.address || '',
+          country: address.country || null,
+          pincode: address.postal_code || address.pincode || '',
+          user_id: address.user_id || '',
+          state_id: address.state_id || null,
+          country_id: address.country_id || null,
+          is_default: address.is_default || 0,
+          country_code: address.country_code || ''
+        } : null;
+        // Adaptar consumer (mock)
+        const consumer = order.user_id ? {
+          id: order.user_id,
+          name: '',
+          role: null,
+          email: '',
+          phone: '',
+          point: null,
+          status: 1,
+          wallet: null,
+          created_at: '',
+          country_code: '',
+          orders_count: 0,
+          created_by_id: null,
+          profile_image: null,
+          system_reserve: '0',
+          profile_image_id: null,
+          email_verified_at: ''
+        } : null;
+        // Adaptar order_status y order_status_activities desde la base de datos
+        const order_status = { id: 1, name: order.status || 'pending', sequence: 1, slug: order.status || 'pending' };
+        console.log('🔍 Activities antes de procesar:', (order as any).order_status_activities);
+        const order_status_activities = (order as any).order_status_activities && (order as any).order_status_activities.length > 0
+          ? (order as any).order_status_activities
+          : [{
+              id: 1,
+              status: order.status || 'pending',
+              order_id: order.id || order._id || null,
+              changed_at: order.created_at || '',
+              created_at: order.created_at || '',
+              updated_at: order.updated_at || '',
+              deleted_at: null
+            }];
+        // Adaptar store (mock)
+        const store = { id: order.store_id || null };
+        return {
+          id: order.id || order._id || null,
+          order_number: order.order_number || null,
+          consumer_id: order.user_id || null,
+          tax_total: order.tax_amount || 0,
+          shipping_total: order.shipping_cost || 0,
+          points_amount: order.points_amount ?? 0,
+          wallet_balance: order.wallet_balance ?? 0,
+          amount: order.subtotal ,
+          total: order.total_amount ,
+          is_digital_only: 0,
+          coupon_total_discount: order.discount_amount || 0,
+          payment_method: order.payment_method || '',
+          payment_status: (order.payment_status || 'pending').toUpperCase(),
+          store_id: order.store_id || null,
+          billing_address: adaptAddress(order.billing_address),
+          shipping_address: adaptAddress(order.shipping_address),
+          products,
+          consumer,
+          delivery_description: order.delivery_description || '',
+          delivery_interval: order.delivery_interval || null,
+          order_status_id: 1,
+          coupon_id: order.coupon_id || null,
+          parent_id: null,
+          created_by_id: null,
+          invoice_url: '',
+          is_guest: 0,
+          status: 1,
+          note: order.notes || order.note || null,
+          delivered_at: null,
+          created_at: order.created_at ,
+          updated_at: order.updated_at ,
+          deleted_at: null,
+          order_status,
+          order_status_activities,
+          store,
+          customer_name: customerName,
+          order_date: order.created_at || ''
+        };
+      }));
+      const totalPages = Math.ceil(total / limit);
+      
+
+      
       res.status(200).json({
-        success: true,
-        message: 'Órdenes obtenidas exitosamente',
-        data: orders,
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit)
-        }
+        current_page: page,
+        data: ordersAdapted,
+        first_page_url: "",
+        from: skip + 1,
+        totalPages: totalPages,
+        last_page_url: "",
+        links: [
+          {
+            url: null,
+            label: "&laquo; Previous",
+            active: false,
+          },
+          {
+            url: "",
+            label: page.toString(),
+            active: true,
+          },
+          {
+            url: null,
+            label: "Next &raquo;",
+            active: false,
+          },
+        ],
+        next_page_url: null,
+        path: "",
+        per_page: limit,
+        prev_page_url: null,
+        to: skip + ordersAdapted.length,
+        total: total,
       });
     } catch (error: any) {
       console.error('❌ Error al obtener órdenes:', error.message);
-      
       res.status(500).json({
         success: false,
         message: error.message || 'Error al obtener las órdenes'
@@ -304,7 +336,6 @@ export class OrderController {
       }
 
       const order = await this.orderRepository.findById(id);
-      
       if (!order) {
         res.status(404).json({
           success: false,
@@ -312,15 +343,137 @@ export class OrderController {
         });
         return;
       }
-      
+      // Adaptar productos
+      const user = order.user_id ? await UserModel.findOne({ id: order.user_id }) : null;
+      const customerName = user ? user.name : '';
+      // En el mapeo de productos en la respuesta de cada orden (en getOrders, getOrderById, getOrdersByUserId):
+      // Usa directamente los valores del item guardado en la orden:
+      const products = (order.items || []).map((item: any) => ({
+        id: item.product_id,
+        name: item.name,
+        price: item.price,
+        sale_price: item.sale_price,
+        total: item.total,
+        is_return: 0,
+        product_thumbnail_id: null,
+        can_review: false,
+        order_amount: item.total,
+        is_wishlist: false,
+        rating_count: null,
+        review_ratings: [0,0,0,0,0],
+        related_products: [],
+        cross_sell_products: [],
+        pivot: {
+          order_id: order.id  || null,
+          wholesale_price: 0,
+          variation: item.variation_id || null,
+          quantity: item.quantity,
+          single_price: item.price || item.sale_price || 0,
+          shipping_cost: 0,
+          refund_status: null,
+          product_id: item.product_id,
+          product_type: 'physical',
+          subtotal: item.total || item.sub_total || 0
+        },
+        wholesales: [],
+        variations: [],
+        product_thumbnail: null,
+        product_galleries: [],
+        attributes: [],
+        brand: null,
+        wishlist: [],
+        reviews: []
+      }));
+      const adaptAddress = (address: any) => address ? {
+        id: address.id || null,
+        city: address.city || '',
+        phone: address.phone || '',
+        state: address.state || null,
+        title: address.title || '',
+        street: address.address || '',
+        country: address.country || null,
+        pincode: address.postal_code || address.pincode || '',
+        user_id: address.user_id || '',
+        state_id: address.state_id || null,
+        country_id: address.country_id || null,
+        is_default: address.is_default || 0,
+        country_code: address.country_code || ''
+      } : null;
+      const consumer = order.user_id ? {
+        id: order.user_id,
+        name: '',
+        role: null,
+        email: '',
+        phone: '',
+        point: null,
+        status: 1,
+        wallet: null,
+        created_at: '',
+        country_code: '',
+        orders_count: 0,
+        created_by_id: null,
+        profile_image: null,
+        system_reserve: '0',
+        profile_image_id: null,
+        email_verified_at: ''
+      } : null;
+      const order_status = { id: 1, name: order.status || 'pending', sequence: 1, slug: order.status || 'pending' };
+      const order_status_activities = (order as any).order_status_activities && (order as any).order_status_activities.length > 0
+        ? (order as any).order_status_activities
+        : [{
+            id: 1,
+            status: order.status || 'pending',
+            order_id: order.id || null,
+            changed_at: order.created_at || '',
+            created_at: order.created_at || '',
+            updated_at: order.updated_at || '',
+            deleted_at: null
+          }];
+      const store = { id: order.store_id || null };
+      const orderAdapted = {
+        id: order.id || order.id || null,
+        order_number: order.order_number || null,
+        consumer_id: order.user_id || null,
+        tax_total: order.tax_amount || 0,
+        shipping_total: order.shipping_cost || 0,
+        points_amount: order || 0,
+        wallet_balance: order || 0,
+        amount: order.subtotal || 0,
+        total: order.total_amount || 0,
+        is_digital_only: 0,
+        coupon_total_discount: order.discount_amount || 0,
+        payment_method: order.payment_method || '',
+        payment_status: (order.payment_status || 'pending').toUpperCase(),
+        store_id: order.store_id || null,
+        billing_address: adaptAddress(order.billing_address),
+        shipping_address: adaptAddress(order.shipping_address),
+        products,
+        consumer,
+        delivery_description: order || '',
+        delivery_interval: order || null,
+        order_status_id: 1,
+        coupon_id: order || null,
+        parent_id: null,
+        created_by_id: null,
+        invoice_url: '',
+        is_guest: 0,
+        status: 1,
+        note: order.notes || order || null,
+        delivered_at: null,
+        created_at: order.created_at || '',
+        updated_at: order.updated_at || '',
+        deleted_at: null,
+        order_status,
+        order_status_activities,
+        store,
+        customer_name: customerName,
+        order_date: order.created_at || ''
+      };
       res.status(200).json({
-        success: true,
-        message: 'Orden obtenida exitosamente',
-        data: order
+        data: orderAdapted
       });
     } catch (error: any) {
       console.error('❌ Error al obtener orden:', error.message);
-      
       res.status(500).json({
         success: false,
         message: error.message || 'Error al obtener la orden'
@@ -341,15 +494,167 @@ export class OrderController {
       }
 
       const orders = await this.orderRepository.findByUserId(userId);
-      
+      const ordersAdapted = await Promise.all(orders.map(async (order: any) => {
+        // (Misma adaptación que en getOrders)
+        const user = order.user_id ? await UserModel.findOne({ id: order.user_id }) : null;
+        const customerName = user ? user.name : '';
+        // En el mapeo de productos en la respuesta de cada orden (en getOrders, getOrderById, getOrdersByUserId):
+        // Usa directamente los valores del item guardado en la orden:
+        const products = (order.items || []).map((item: any) => ({
+          id: item.product_id,
+          name: item.name,
+          price: item.price,
+          sale_price: item.sale_price,
+          total: item.total,
+          is_return: 0,
+          product_thumbnail_id: null,
+          can_review: false,
+          order_amount: item.total,
+          is_wishlist: false,
+          rating_count: null,
+          review_ratings: [0,0,0,0,0],
+          related_products: [],
+          cross_sell_products: [],
+          pivot: {
+            order_id: order.id || order._id || null,
+            wholesale_price: 0,
+            variation: item.variation_id || null,
+            quantity: item.quantity,
+            single_price: item.price || item.sale_price || 0,
+            shipping_cost: 0,
+            refund_status: null,
+            product_id: item.product_id,
+            product_type: 'physical',
+            subtotal: item.total || item.sub_total || 0
+          },
+          wholesales: [],
+          variations: [],
+          product_thumbnail: null,
+          product_galleries: [],
+          attributes: [],
+          brand: null,
+          wishlist: [],
+          reviews: []
+        }));
+        const adaptAddress = (address: any) => address ? {
+          id: address.id || null,
+          city: address.city || '',
+          phone: address.phone || '',
+          state: address.state || null,
+          title: address.title || '',
+          street: address.address || '',
+          country: address.country || null,
+          pincode: address.postal_code || address.pincode || '',
+          user_id: address.user_id || '',
+          state_id: address.state_id || null,
+          country_id: address.country_id || null,
+          is_default: address.is_default || 0,
+          country_code: address.country_code || ''
+        } : null;
+        const consumer = order.user_id ? {
+          id: order.user_id,
+          name: '',
+          role: null,
+          email: '',
+          phone: '',
+          point: null,
+          status: 1,
+          wallet: null,
+          created_at: '',
+          country_code: '',
+          orders_count: 0,
+          created_by_id: null,
+          profile_image: null,
+          system_reserve: '0',
+          profile_image_id: null,
+          email_verified_at: ''
+        } : null;
+        const order_status = { id: 1, name: order.status || 'pending', sequence: 1, slug: order.status || 'pending' };
+        const order_status_activities = (order as any).order_status_activities && (order as any).order_status_activities.length > 0
+          ? (order as any).order_status_activities
+          : [{
+              id: 1,
+              status: order.status || 'pending',
+              order_id: order.id || (order as any)._id || null,
+              changed_at: order.created_at || '',
+              created_at: order.created_at || '',
+              updated_at: order.updated_at || '',
+              deleted_at: null
+            }];
+        const store = { id: order.store_id || null };
+        return {
+          id: order.id || order._id || null,
+          order_number: order.order_number || null,
+          consumer_id: order.user_id || null,
+          tax_total: order.tax_amount || 0,
+          shipping_total: order.shipping_cost || 0,
+          points_amount: order.points_amount || 0,
+          wallet_balance: order.wallet_balance || 0,
+          amount: order.subtotal || 0,
+          total: order.total_amount || 0,
+          is_digital_only: 0,
+          coupon_total_discount: order.discount_amount || 0,
+          payment_method: order.payment_method || '',
+          payment_status: (order.payment_status || 'pending').toUpperCase(),
+          store_id: order.store_id || null,
+          billing_address: adaptAddress(order.billing_address),
+          shipping_address: adaptAddress(order.shipping_address),
+          products,
+          consumer,
+          delivery_description: order.delivery_description || '',
+          delivery_interval: order.delivery_interval || null,
+          order_status_id: 1,
+          coupon_id: order.coupon_id || null,
+          parent_id: null,
+          created_by_id: null,
+          invoice_url: '',
+          is_guest: 0,
+          status: 1,
+          note: order.notes || order.note || null,
+          delivered_at: null,
+          created_at: order.created_at || '',
+          updated_at: order.updated_at || '',
+          deleted_at: null,
+          order_status,
+          order_status_activities,
+          store,
+          customer_name: customerName,
+          order_date: order.created_at || ''
+        };
+      }));
       res.status(200).json({
-        success: true,
-        message: 'Órdenes del usuario obtenidas exitosamente',
-        data: orders
+        current_page: 1,
+        data: ordersAdapted,
+        first_page_url: "",
+        from: 1,
+        last_page: 1,
+        last_page_url: "",
+        links: [
+          {
+            url: null,
+            label: "&laquo; Previous",
+            active: false,
+          },
+          {
+            url: "",
+            label: "1",
+            active: true,
+          },
+          {
+            url: null,
+            label: "Next &raquo;",
+            active: false,
+          },
+        ],
+        next_page_url: null,
+        path: "",
+        per_page: ordersAdapted.length,
+        prev_page_url: null,
+        to: ordersAdapted.length,
+        total: ordersAdapted.length,
       });
     } catch (error: any) {
       console.error('❌ Error al obtener órdenes del usuario:', error.message);
-      
       res.status(500).json({
         success: false,
         message: error.message || 'Error al obtener las órdenes del usuario'

@@ -7,13 +7,8 @@ import { injectable } from 'tsyringe';
 export class OrderRepository implements IOrderRepository {
   async create(order: Partial<IOrder>): Promise<IOrder> {
     try {
-      console.log('🛒 Datos recibidos en el repositorio de órdenes:', order);
-      
       const newOrder = new OrderModel(order);
-      console.log('🛒 Orden creada:', newOrder);
-      
       const savedOrder = await newOrder.save();
-      console.log('🛒 Orden guardada:', savedOrder);
       
       const orderObj = savedOrder.toObject();
       return {
@@ -21,7 +16,6 @@ export class OrderRepository implements IOrderRepository {
         id: orderObj._id
       };
     } catch (error) {
-      console.error('❌ Error en OrderRepository.create:', error);
       throw new Error('Error al crear la orden en la base de datos');
     }
   }
@@ -40,7 +34,6 @@ export class OrderRepository implements IOrderRepository {
         id: orderObj._id
       };
     } catch (error) {
-      console.error('❌ Error en OrderRepository.findById:', error);
       throw new Error('Error al obtener la orden de la base de datos');
     }
   }
@@ -59,7 +52,6 @@ export class OrderRepository implements IOrderRepository {
         id: orderObj._id
       };
     } catch (error) {
-      console.error('❌ Error en OrderRepository.findByOrderNumber:', error);
       throw new Error('Error al obtener la orden por número de la base de datos');
     }
   }
@@ -78,7 +70,6 @@ export class OrderRepository implements IOrderRepository {
         };
       });
     } catch (error) {
-      console.error('❌ Error en OrderRepository.findByUserId:', error);
       throw new Error('Error al obtener las órdenes del usuario de la base de datos');
     }
   }
@@ -98,7 +89,6 @@ export class OrderRepository implements IOrderRepository {
         };
       });
     } catch (error) {
-      console.error('❌ Error en OrderRepository.findByStoreId:', error);
       throw new Error('Error al obtener las órdenes de la tienda de la base de datos');
     }
   }
@@ -120,7 +110,6 @@ export class OrderRepository implements IOrderRepository {
         };
       });
     } catch (error) {
-      console.error('❌ Error en OrderRepository.findAll:', error);
       throw new Error('Error al obtener las órdenes de la base de datos');
     }
   }
@@ -156,9 +145,9 @@ export class OrderRepository implements IOrderRepository {
 
   async count(): Promise<number> {
     try {
-      return await OrderModel.countDocuments();
+      const total = await OrderModel.countDocuments();
+      return total;
     } catch (error) {
-      console.error('❌ Error en OrderRepository.count:', error);
       throw new Error('Error al contar las órdenes en la base de datos');
     }
   }
