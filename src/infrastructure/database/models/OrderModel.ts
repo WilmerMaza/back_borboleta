@@ -35,6 +35,15 @@ const orderItemSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  name: {
+    type: String,
+  },
+  image: {
+    type: String,
+  },
+  sub_total: {
+    type: Number,
+  },
 });
 
 const addressSchema = new mongoose.Schema({
@@ -151,6 +160,77 @@ const orderSchema = new mongoose.Schema(
       default: "pending",
     },
     order_status_activities: [orderStatusActivitySchema],
+    // Campos adicionales para información del cliente
+    customer_name: String,
+    customer_email: String,
+    customer_phone: String,
+    // Campos adicionales para información de la tienda
+    store_name: String,
+    store_description: String,
+    store_logo: String,
+    store_banner: String,
+    store_address: String,
+    store_phone: String,
+    store_email: String,
+    store_status: {
+      type: Boolean,
+      default: true,
+    },
+    // Campos adicionales para información del producto
+    product_name: String,
+    product_description: String,
+    product_images: [String],
+    product_status: {
+      type: Boolean,
+      default: true,
+    },
+    // Campos adicionales para cupones
+    coupon_id: Number,
+    coupon_code: String,
+    coupon_discount: Number,
+    coupon_type: String,
+    coupon_status: {
+      type: Boolean,
+      default: true,
+    },
+    // Campos adicionales para direcciones
+    billing_address_id: Number,
+    shipping_address_id: Number,
+    // Campos adicionales para pagos
+    payment_mode: String,
+    order_payment_status: String,
+    // Campos adicionales para envío
+    delivery_description: String,
+    delivery_interval: String,
+    // Campos adicionales para órdenes
+    parent_id: Number,
+    created_by_id: Number,
+    invoice_url: String,
+    is_digital_only: {
+      type: Boolean,
+      default: false,
+    },
+    is_guest: {
+      type: Number,
+      default: 0,
+    },
+    order_status_id: Number,
+    delivered_at: Date,
+    // Campos adicionales para transacciones
+    transactions: [{
+      id: Number,
+      amount: Number,
+      currency: String,
+      status: String,
+      created_at: String,
+    }],
+    // Campos adicionales para sub-órdenes
+    sub_orders: [{
+      id: Number,
+      order_number: String,
+      status: String,
+      total: Number,
+    }],
   },
   {
     timestamps: true,
