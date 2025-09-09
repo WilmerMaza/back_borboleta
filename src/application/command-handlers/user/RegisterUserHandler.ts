@@ -4,11 +4,13 @@ import { RegisterUserCommand } from '../../commands/user/RegisterUserCommand';
 import { Logger } from '../../../shared/utils/logger';
 import { IUserRepository } from 'src/domain/repositories/IUserRepository';
 import { IUser } from 'src/domain/entities/User';
+import { AuthService } from '../../services/AuthService';
 
 @injectable()
 export class RegisterUserHandler {
   constructor(
-    @inject('UserRepository') private userRepository: IUserRepository
+    @inject('UserRepository') private userRepository: IUserRepository,
+    @inject('AuthService') private authService: AuthService
   ) {}
 
   async handle(command: RegisterUserCommand): Promise<IUser> {
@@ -22,9 +24,13 @@ export class RegisterUserHandler {
 
     Logger.log('Registrando nuevo usuario', userData.email);
     
+    // Hash de la contraseña
+    const hashedPassword = await this.authService.hashPassword(userData.password);
+    
     // Valores por defecto para nuevos usuarios
     const defaultUserData: IUser = {
       ...userData,
+      password: hashedPassword,
       status: userData.status ?? true,
       is_approved: userData.is_approved ?? false,
     };
