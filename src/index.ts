@@ -12,6 +12,7 @@ import cartRoutes from './presentation/routes/cart.routes';
 import checkoutRoutes from './presentation/routes/checkout.routes';
 import settingsRoutes from './presentation/routes/settings.routes';
 import settingThemeRoutes from './presentation/routes/setting-theme.routes';
+import addressRoutes from './presentation/routes/address.routes';
 import connectDB from './infrastructure/database/config/database';
 
 dotenv.config();
@@ -36,6 +37,7 @@ connectDB()
 // Rutas
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/users/addresses', addressRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
