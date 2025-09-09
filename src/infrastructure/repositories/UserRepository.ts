@@ -41,6 +41,16 @@ export class UserRepository implements IUserRepository {
     }
   }
 
+  async findByPhone(phone: string, countryCode: number): Promise<IUser | null> {
+    try {
+      const user = await UserModel.findOne({ phone, country_code: countryCode });
+      return user ? user.toObject() : null;
+    } catch (error) {
+      Logger.error(`Error al buscar usuario con teléfono ${phone}:`, error);
+      throw error;
+    }
+  }
+
   async findAll(): Promise<IUser[]> {
     try {
       const users = await UserModel.find();
@@ -61,6 +71,24 @@ export class UserRepository implements IUserRepository {
       return updatedUser ? updatedUser.toObject() : null;
     } catch (error) {
       Logger.error(`Error al actualizar usuario con ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async updatePassword(email: string, password: string): Promise<IUser | null> {
+    try {
+      const bcrypt = require('bcryptjs');
+      const { authConfig } = require('../../config/auth');
+      const hashedPassword = await bcrypt.hash(password, authConfig.BCRYPT_SALT_ROUNDS);
+      
+      const updatedUser = await UserModel.findOneAndUpdate(
+        { email },
+        { $set: { password: hashedPassword } },
+        { new: true }
+      );
+      return updatedUser ? updatedUser.toObject() : null;
+    } catch (error) {
+      Logger.error(`Error al actualizar contraseña para email ${email}:`, error);
       throw error;
     }
   }
