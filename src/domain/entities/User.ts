@@ -63,6 +63,7 @@ export interface IUser {
   email: string;
   phone: string;
   country_code: number;
+  password: string;
   profile_image?: Attachment;
   profile_image_id?: number;
   status: boolean;
