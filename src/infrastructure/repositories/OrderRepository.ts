@@ -16,7 +16,8 @@ export class OrderRepository implements IOrderRepository {
         id: orderObj._id
       };
     } catch (error) {
-      throw new Error('Error al crear la orden en la base de datos');
+      console.error('❌ Error detallado en OrderRepository.create:', error);
+      throw new Error(`Error al crear la orden en la base de datos: ${error.message}`);
     }
   }
 
