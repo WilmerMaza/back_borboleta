@@ -15,7 +15,7 @@ const categorySchema = new Schema<ICategoryModel>(
     slug: { type: String, unique: true, sparse: true },
     description: { type: String, trim: true },
     type: { type: String, default: "product" },
-    parent_id: { type: Schema.Types.ObjectId, ref: "Category", default: null },
+    parent_id: { type: String, ref: "Category", default: null },
     category_image_id: { type: Number, ref: "Attachment" },
     category_icon_id: { type: Number, ref: "Attachment" },
     category_meta_image_id: { type: Number, ref: "Attachment" },

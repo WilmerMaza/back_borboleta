@@ -70,7 +70,7 @@ export class GetCategoriesUseCase {
   }
 
   async getCategoryById(id: string): Promise<ICategory | null> {
-    return await this.categoryRepository.findById(id);
+    return await this.categoryRepository.findById(Number(id));
   }
 
   async getCategoryBySlug(slug: string): Promise<ICategory | null> {

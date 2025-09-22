@@ -10,10 +10,29 @@ export class OrderRepository implements IOrderRepository {
       const newOrder = new OrderModel(order);
       const savedOrder = await newOrder.save();
       
+      // Debug: Log de la orden guardada
+      console.log('🔍 Orden guardada en DB:', {
+        _id: savedOrder._id,
+        createdAt: (savedOrder as any).createdAt,
+        updatedAt: (savedOrder as any).updatedAt,
+        created_at: (savedOrder as any).created_at,
+        updated_at: (savedOrder as any).updated_at,
+        order_number: savedOrder.order_number,
+        total_amount: savedOrder.total_amount
+      });
+      
       const orderObj = savedOrder.toObject();
+      
+      // Mongoose timestamps están en createdAt y updatedAt
+      const createdAt = (savedOrder as any).createdAt;
+      const updatedAt = (savedOrder as any).updatedAt;
+      
       return {
         ...orderObj,
-        id: orderObj._id
+        id: orderObj._id,
+        // Mapear timestamps de Mongoose a la interfaz
+        created_at: createdAt ? createdAt.toISOString() : new Date().toISOString(),
+        updated_at: updatedAt ? updatedAt.toISOString() : new Date().toISOString()
       };
     } catch (error) {
       console.error('❌ Error detallado en OrderRepository.create:', error);
@@ -30,9 +49,17 @@ export class OrderRepository implements IOrderRepository {
       if (!order) return null;
       
       const orderObj = order.toObject();
+      
+      // Mongoose timestamps están en createdAt y updatedAt
+      const createdAt = (order as any).createdAt;
+      const updatedAt = (order as any).updatedAt;
+      
       return {
         ...orderObj,
-        id: orderObj._id
+        id: orderObj._id,
+        // Mapear timestamps de Mongoose a la interfaz
+        created_at: createdAt ? createdAt.toISOString() : new Date().toISOString(),
+        updated_at: updatedAt ? updatedAt.toISOString() : new Date().toISOString()
       };
     } catch (error) {
       throw new Error('Error al obtener la orden de la base de datos');
@@ -48,9 +75,17 @@ export class OrderRepository implements IOrderRepository {
       if (!order) return null;
       
       const orderObj = order.toObject();
+      
+      // Mongoose timestamps están en createdAt y updatedAt
+      const createdAt = (order as any).createdAt;
+      const updatedAt = (order as any).updatedAt;
+      
       return {
         ...orderObj,
-        id: orderObj._id
+        id: orderObj._id,
+        // Mapear timestamps de Mongoose a la interfaz
+        created_at: createdAt ? createdAt.toISOString() : new Date().toISOString(),
+        updated_at: updatedAt ? updatedAt.toISOString() : new Date().toISOString()
       };
     } catch (error) {
       throw new Error('Error al obtener la orden por número de la base de datos');
@@ -61,13 +96,29 @@ export class OrderRepository implements IOrderRepository {
     try {
       const orders = await OrderModel.find({ user_id: userId })
         .populate('items.product_id', 'name price sale_price')
-        .sort({ created_at: -1 });
+        .sort({ createdAt: -1 }); // Cambiar a createdAt que es el campo real de Mongoose
       
       return orders.map(order => {
         const orderObj = order.toObject();
+        
+        // Debug: Log de cada orden encontrada
+        console.log('🔍 Orden encontrada en findByUserId:', {
+          _id: order._id,
+          createdAt: (order as any).createdAt,
+          updatedAt: (order as any).updatedAt,
+          order_number: order.order_number
+        });
+        
+        // Mongoose timestamps están en createdAt y updatedAt
+        const createdAt = (order as any).createdAt;
+        const updatedAt = (order as any).updatedAt;
+        
         return {
           ...orderObj,
-          id: orderObj._id
+          id: orderObj._id,
+          // Mapear timestamps de Mongoose a la interfaz
+          created_at: createdAt ? createdAt.toISOString() : new Date().toISOString(),
+          updated_at: updatedAt ? updatedAt.toISOString() : new Date().toISOString()
         };
       });
     } catch (error) {
@@ -80,13 +131,21 @@ export class OrderRepository implements IOrderRepository {
       const orders = await OrderModel.find({ store_id: storeId })
         .populate('user_id', 'name email')
         .populate('items.product_id', 'name price sale_price')
-        .sort({ created_at: -1 });
+        .sort({ createdAt: -1 }); // Cambiar a createdAt que es el campo real de Mongoose
       
       return orders.map(order => {
         const orderObj = order.toObject();
+        
+        // Mongoose timestamps están en createdAt y updatedAt
+        const createdAt = (order as any).createdAt;
+        const updatedAt = (order as any).updatedAt;
+        
         return {
           ...orderObj,
-          id: orderObj._id
+          id: orderObj._id,
+          // Mapear timestamps de Mongoose a la interfaz
+          created_at: createdAt ? createdAt.toISOString() : new Date().toISOString(),
+          updated_at: updatedAt ? updatedAt.toISOString() : new Date().toISOString()
         };
       });
     } catch (error) {
@@ -101,13 +160,21 @@ export class OrderRepository implements IOrderRepository {
         .populate('items.product_id', 'name price sale_price')
         .skip(params.skip)
         .limit(params.limit)
-        .sort({ created_at: -1 });
+        .sort({ createdAt: -1 }); // Cambiar a createdAt que es el campo real de Mongoose
       
       return orders.map(order => {
         const orderObj = order.toObject();
+        
+        // Mongoose timestamps están en createdAt y updatedAt
+        const createdAt = (order as any).createdAt;
+        const updatedAt = (order as any).updatedAt;
+        
         return {
           ...orderObj,
-          id: orderObj._id
+          id: orderObj._id,
+          // Mapear timestamps de Mongoose a la interfaz
+          created_at: createdAt ? createdAt.toISOString() : new Date().toISOString(),
+          updated_at: updatedAt ? updatedAt.toISOString() : new Date().toISOString()
         };
       });
     } catch (error) {

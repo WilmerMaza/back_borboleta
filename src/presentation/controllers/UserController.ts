@@ -246,4 +246,176 @@ export class UserController {
       });
     }
   };
+
+  // GET /api/users - Listar todos los usuarios
+  handleGetUsers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      Logger.log('Solicitud de listado de usuarios recibida', req.user);
+      
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Usuario no autenticado'
+        });
+        return;
+      }
+
+      const userRepository = container.resolve<IUserRepository>('UserRepository');
+      const users = await userRepository.findAll();
+
+      // Formatear respuesta (sin contraseñas)
+      const formattedUsers = users.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Usuarios obtenidos exitosamente',
+        data: {
+          users: formattedUsers,
+          total: formattedUsers.length
+        }
+      });
+    } catch (error: any) {
+      Logger.error('Error al obtener usuarios:', error);
+
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error al obtener usuarios'
+      });
+    }
+  };
+
+  // PUT /api/users/:id - Actualizar usuario
+  handleUpdateUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+
+      Logger.log('Solicitud de actualización de usuario recibida', { id, updateData });
+      
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Usuario no autenticado'
+        });
+        return;
+      }
+
+      const userRepository = container.resolve<IUserRepository>('UserRepository');
+      
+      // Verificar que el usuario existe
+      const existingUser = await userRepository.findById(parseInt(id));
+      if (!existingUser) {
+        res.status(404).json({
+          success: false,
+          message: 'Usuario no encontrado'
+        });
+        return;
+      }
+
+      // Validar que no se esté actualizando el email a uno que ya existe
+      if (updateData.email && updateData.email !== existingUser.email) {
+        const userWithEmail = await userRepository.findByEmail(updateData.email);
+        if (userWithEmail && userWithEmail.id !== parseInt(id)) {
+          res.status(400).json({
+            success: false,
+            message: 'El email ya está en uso por otro usuario'
+          });
+          return;
+        }
+      }
+
+      // Actualizar usuario
+      const updatedUser = await userRepository.update(parseInt(id), updateData);
+      
+      if (!updatedUser) {
+        res.status(500).json({
+          success: false,
+          message: 'Error al actualizar el usuario'
+        });
+        return;
+      }
+
+      // Formatear respuesta (sin contraseña)
+      const { password, ...userWithoutPassword } = updatedUser;
+
+      res.status(200).json({
+        success: true,
+        message: 'Usuario actualizado exitosamente',
+        data: {
+          user: userWithoutPassword
+        }
+      });
+    } catch (error: any) {
+      Logger.error('Error al actualizar usuario:', error);
+
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error al actualizar usuario'
+      });
+    }
+  };
+
+  // DELETE /api/users/:id - Eliminar usuario
+  handleDeleteUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+
+      Logger.log('Solicitud de eliminación de usuario recibida', { id });
+      
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: 'Usuario no autenticado'
+        });
+        return;
+      }
+
+      const userRepository = container.resolve<IUserRepository>('UserRepository');
+      
+      // Verificar que el usuario existe
+      const existingUser = await userRepository.findById(parseInt(id));
+      if (!existingUser) {
+        res.status(404).json({
+          success: false,
+          message: 'Usuario no encontrado'
+        });
+        return;
+      }
+
+      // Verificar que no se esté eliminando a sí mismo
+      if (parseInt(id) === req.user.userId) {
+        res.status(400).json({
+          success: false,
+          message: 'No puedes eliminar tu propia cuenta'
+        });
+        return;
+      }
+
+      // Eliminar usuario
+      const deleted = await userRepository.delete(parseInt(id));
+      
+      if (!deleted) {
+        res.status(500).json({
+          success: false,
+          message: 'Error al eliminar el usuario'
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Usuario eliminado exitosamente'
+      });
+    } catch (error: any) {
+      Logger.error('Error al eliminar usuario:', error);
+
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error al eliminar usuario'
+      });
+    }
+  };
 }

@@ -9,7 +9,7 @@ export class CategoryRepository {
     return await category.save();
   }
 
-  async findById(id: string): Promise<ICategory | null> {
+  async findById(id: number): Promise<ICategory | null> {
     return await CategoryModel.findById(id).populate("subcategories");
   }
 
@@ -53,8 +53,19 @@ export class CategoryRepository {
     });
   }
 
+  async updateByAutoIncrementId(id: number, categoryData: Partial<ICategory>): Promise<ICategory | null> {
+    return await CategoryModel.findOneAndUpdate({ id: id }, categoryData, {
+      new: true,
+    });
+  }
+
   async delete(id: string): Promise<boolean> {
     const result = await CategoryModel.findByIdAndDelete(id);
+    return result !== null;
+  }
+
+  async deleteByAutoIncrementId(id: number): Promise<boolean> {
+    const result = await CategoryModel.findOneAndDelete({ id: id });
     return result !== null;
   }
 

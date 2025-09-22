@@ -19,4 +19,9 @@ router.post('/update-password', userController.handleUpdatePassword);
 router.get('/profile', authenticateToken, userController.handleGetUserProfile);
 router.get('/test-token', authenticateToken, userController.handleTestToken);
 
+// Gestión de usuarios (requieren autenticación)
+router.get('/', authenticateToken, userController.handleGetUsers);
+router.put('/:id', authenticateToken, userController.handleUpdateUser);
+router.delete('/:id', authenticateToken, userController.handleDeleteUser);
+
 export default router;

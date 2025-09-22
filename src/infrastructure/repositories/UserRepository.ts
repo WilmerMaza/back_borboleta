@@ -33,7 +33,18 @@ export class UserRepository implements IUserRepository {
 
   async findByEmail(email: string): Promise<IUser | null> {
     try {
+      Logger.log(`🔍 UserRepository: Buscando usuario con email: "${email}"`);
       const user = await UserModel.findOne({ email });
+      Logger.log(`🔍 UserRepository: Resultado de búsqueda:`, user ? `Usuario encontrado: ${user.email}` : 'Usuario no encontrado');
+      
+      if (user) {
+        Logger.log(`🔍 UserRepository: Detalles del usuario:`, {
+          id: user.id,
+          email: user.email,
+          name: user.name
+        });
+      }
+      
       return user ? user.toObject() : null;
     } catch (error) {
       Logger.error(`Error al buscar usuario con email ${email}:`, error);
@@ -63,8 +74,8 @@ export class UserRepository implements IUserRepository {
 
   async update(id: number, userData: Partial<IUser>): Promise<IUser | null> {
     try {
-      const updatedUser = await UserModel.findByIdAndUpdate(
-        id,
+      const updatedUser = await UserModel.findOneAndUpdate(
+        { id: id },
         { $set: userData },
         { new: true }
       );
@@ -95,7 +106,7 @@ export class UserRepository implements IUserRepository {
 
   async delete(id: number): Promise<boolean> {
     try {
-      const result = await UserModel.findByIdAndDelete(id);
+      const result = await UserModel.findOneAndDelete({ id: id });
       return !!result;
     } catch (error) {
       Logger.error(`Error al eliminar usuario con ID ${id}:`, error);

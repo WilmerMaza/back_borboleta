@@ -131,7 +131,7 @@ async function createTestProducts() {
       
       // Crear el producto (el numeric_id se generará automáticamente)
       const newProduct = new ProductModel(productData);
-      const savedProduct = await newProduct.save();
+      await newProduct.save();
  
     }
 
