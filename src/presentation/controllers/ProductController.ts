@@ -63,7 +63,8 @@ export class ProductController {
             throw new Error(`La categoría con ID ${id} no existe`);
           }
 
-          validatedCategories.push(new mongoose.Types.ObjectId(category.id));
+          // Convertir el _id de MongoDB a ObjectId para la referencia
+          validatedCategories.push(new mongoose.Types.ObjectId((category as any)._id));
         }
 
         productData.categories = validatedCategories;

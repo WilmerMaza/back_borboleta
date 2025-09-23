@@ -28,7 +28,8 @@ export class CreateCategoryUseCase {
         throw new Error("La categoría padre no existe");
       }
 
-      categoryData.parent_id = parentCategory;
+      // Convertir parent_id a string para guardar en la base de datos
+      categoryData.parent_id = categoryData.parent_id.toString();
     }
 
     // Validar comisión si se proporciona

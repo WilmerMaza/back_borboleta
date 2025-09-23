@@ -21,18 +21,29 @@ export class LoginHandler {
       Logger.log('Iniciando proceso de login para email:', command.email);
 
       // Buscar usuario por email
+      Logger.log('Buscando usuario en la base de datos...');
       const user = await this.userRepository.findByEmail(command.email);
+      Logger.log('Resultado de búsqueda:', user ? `Usuario encontrado: ${user.email}` : 'Usuario no encontrado');
+      
       if (!user) {
+        Logger.log('❌ Usuario no encontrado en la base de datos');
         throw new Error('Credenciales inválidas');
       }
 
       // Verificar contraseña
+      Logger.log('Verificando contraseña...');
+      Logger.log('Password recibida:', command.password);
+      Logger.log('Password hash en BD:', user.password);
+      
       const isPasswordValid = await this.authService.comparePassword(
         command.password,
         user.password
       );
+      
+      Logger.log('Resultado de verificación de contraseña:', isPasswordValid);
 
       if (!isPasswordValid) {
+        Logger.log('❌ Contraseña inválida');
         throw new Error('Credenciales inválidas');
       }
 

@@ -11,19 +11,23 @@ export class DeleteCategoryHandler {
   async handle(command: DeleteCategoryCommand): Promise<boolean> {
     const { id } = command.data;
     
-    // Verificar que la categoría existe
-    const existingCategory = await this.categoryRepository.findById(id);
+    // Convertir ID a número si es string (como está guardado en la base de datos)
+    const categoryId = typeof id === 'string' ? parseInt(id) : id;
+    
+    // Verificar que la categoría existe usando el ID numérico
+    const existingCategory = await this.categoryRepository.findByAutoIncrementId(categoryId);
     if (!existingCategory) {
       throw new Error(`Categoría con ID '${id}' no encontrada`);
     }
 
-    // Verificar si tiene subcategorías
-    const subcategories = await this.categoryRepository.findSubcategories(id);
+    // Verificar si tiene subcategorías usando el ID numérico como string
+    const subcategories = await this.categoryRepository.findSubcategories(categoryId.toString());
     if (subcategories.length > 0) {
       throw new Error('No se puede eliminar una categoría que tiene subcategorías. Elimine las subcategorías primero.');
     }
 
-    const deleted = await this.categoryRepository.delete(id);
+    // Eliminar usando el ID numérico
+    const deleted = await this.categoryRepository.deleteByAutoIncrementId(categoryId);
     
     if (!deleted) {
       throw new Error('Error al eliminar la categoría');
