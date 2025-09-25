@@ -101,6 +101,21 @@ export class ProductRepository implements IProductRepository {
     }
   }
 
+  async findByAutoIncrementId(id: number): Promise<IProduct | null> {
+    try {
+      const product = await ProductModel.findOne({ id: id });
+      if (!product) return null;
+
+      const productObj = product.toObject();
+      return {
+        ...productObj,
+      };
+    } catch (error) {
+      console.error("❌ Error en ProductRepository.findByAutoIncrementId:", error);
+      throw new Error("Error al obtener el producto de la base de datos");
+    }
+  }
+
   async findBySlug(slug: string): Promise<IProduct | null> {
     try {
       const product = await ProductModel.findOne({ slug });
@@ -189,8 +204,81 @@ export class ProductRepository implements IProductRepository {
     }
   }
 
+  async updateByNumericId(id: number, product: Partial<IProduct>): Promise<IProduct | null> {
+    try {
+      // Ignorar sale_price del frontend y recalcular automáticamente
+      delete product.sale_price; // Eliminar sale_price si viene del frontend
+
+      // Si se está actualizando price o discount, recalcular sale_price
+      if (product.price !== undefined || product.discount !== undefined) {
+        // Obtener el producto actual para tener todos los datos
+        const currentProduct = await ProductModel.findOne({ id: id });
+        if (!currentProduct) return null;
+
+        const currentPrice =
+          product.price !== undefined
+            ? Number(product.price)
+            : Number(currentProduct.price);
+        const currentDiscount =
+          product.discount !== undefined
+            ? Number(product.discount)
+            : Number(currentProduct.discount || 0);
+
+        // Calcular sale_price automáticamente
+        if (currentPrice && currentDiscount > 0) {
+          // Validar que el descuento esté entre 0 y 100
+          if (currentDiscount >= 0 && currentDiscount <= 100) {
+            const salePrice =
+              currentPrice - (currentPrice * currentDiscount) / 100;
+            product.sale_price = Math.max(0, salePrice); // Asegurar que no sea negativo
+            console.log(
+              "💰 Sale price recalculado:",
+              product.sale_price,
+              "Precio:",
+              currentPrice,
+              "Descuento:",
+              currentDiscount + "%"
+            );
+          } else {
+            console.log(
+              "⚠️ Descuento inválido:",
+              currentDiscount,
+              "%. Debe estar entre 0 y 100"
+            );
+            product.sale_price = currentPrice; // Sin descuento
+          }
+        } else {
+          // Si no hay descuento, sale_price = price
+          product.sale_price = currentPrice;
+          console.log(
+            "💰 Sin descuento, sale_price = price:",
+            product.sale_price
+          );
+        }
+      }
+
+      const updatedProduct = await ProductModel.findOneAndUpdate({ id: id }, product, {
+        new: true,
+      });
+      if (!updatedProduct) return null;
+
+      const productObj = updatedProduct.toObject();
+      return {
+        ...productObj,
+      };
+    } catch (error) {
+      console.error("❌ Error en ProductRepository.updateByNumericId:", error);
+      throw new Error("Error al actualizar el producto en la base de datos");
+    }
+  }
+
   async delete(id: string): Promise<boolean> {
     const result = await ProductModel.findByIdAndDelete(id);
+    return !!result;
+  }
+
+  async deleteByNumericId(id: number): Promise<boolean> {
+    const result = await ProductModel.findOneAndDelete({ id: id });
     return !!result;
   }
 

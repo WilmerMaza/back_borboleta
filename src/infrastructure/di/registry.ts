@@ -6,6 +6,7 @@ import { RegisterUserHandler } from '../../application/command-handlers/user/Reg
 import { UserRepository } from '../repositories/UserRepository';
 import { GetProductsHandler } from '../../application/command-handlers/product/GetProductsHandler';
 import { GetProductsUseCase } from '../../application/use-cases/GetProductsUseCase';
+import { GetProductByIdHandler } from '../../application/query-handlers/product/GetProductByIdHandler';
 import { GetProductBySlugHandler } from '../../application/command-handlers/product/GetProductBySlugHandler';
 import { UpdateProductHandler } from '../../application/command-handlers/product/UpdateProductHandler';
 import { DeleteProductHandler } from '../../application/command-handlers/product/DeleteProductHandler';
@@ -88,6 +89,10 @@ container.register('CreateProductHandler', {
 
 container.register('GetProductsHandler', {
   useClass: GetProductsHandler
+});
+
+container.register('GetProductByIdHandler', {
+  useClass: GetProductByIdHandler
 });
 
 container.register('GetProductBySlugHandler', {

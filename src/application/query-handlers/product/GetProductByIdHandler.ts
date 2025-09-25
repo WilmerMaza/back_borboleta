@@ -1,10 +1,14 @@
-import { injectable } from 'tsyringe';
-import { GetProductByIdQuery } from '../../queries/product/GetProductByIdQuery';
+import { injectable, inject } from 'tsyringe';
+import { IProductRepository } from '../../../domain/repositories/IProductRepository';
 import { IProduct } from '../../../domain/entities/Product';
 
 @injectable()
 export class GetProductByIdHandler {
-  async handle(query: GetProductByIdQuery): Promise<IProduct | null> {
-    return await query.getRepository.findById(query.getId.toString());
+  constructor(
+    @inject('ProductRepository') private productRepository: IProductRepository
+  ) {}
+
+  async handle(id: number): Promise<IProduct | null> {
+    return await this.productRepository.findByNumericId(id);
   }
 }

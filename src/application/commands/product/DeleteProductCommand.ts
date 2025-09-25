@@ -1,9 +1,9 @@
 import { ICommand } from '../../../domain/interfaces/ICommand';
 
 export class DeleteProductCommand implements ICommand {
-  constructor(private readonly id: string) {}
+  constructor(private readonly id: number) {}
 
-  get data(): { id: string } {
+  get data(): { id: number } {
     return { id: this.id };
   }
 } 
