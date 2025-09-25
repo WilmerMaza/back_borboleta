@@ -12,8 +12,8 @@ export class UpdateProductHandler {
   async handle(command: UpdateProductCommand): Promise<IProduct> {
     const { id, update } = command.data;
     
-    // Verificar que el producto existe
-    const existingProduct = await this.productRepository.findById(id);
+    // Verificar que el producto existe usando ID numérico
+    const existingProduct = await this.productRepository.findByNumericId(id);
     if (!existingProduct) {
       throw new Error(`Producto con ID '${id}' no encontrado`);
     }
@@ -27,7 +27,8 @@ export class UpdateProductHandler {
       update.price = price;
     }
 
-    const updatedProduct = await this.productRepository.update(id, update);
+    // Actualizar usando el ID numérico
+    const updatedProduct = await this.productRepository.updateByNumericId(id, update);
     
     if (!updatedProduct) {
       throw new Error('Error al actualizar el producto');

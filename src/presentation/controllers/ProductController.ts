@@ -3,6 +3,7 @@ import { injectable, inject } from "tsyringe";
 import { CreateProductCommand } from "../../application/commands/product/CreateProductCommand";
 import { CreateProductHandler } from "../../application/command-handlers/product/CreateProductHandler";
 import { GetProductsHandler } from "../../application/command-handlers/product/GetProductsHandler";
+import { GetProductByIdHandler } from "../../application/query-handlers/product/GetProductByIdHandler";
 import { GetProductBySlugCommand } from "../../application/commands/product/GetProductBySlugCommand";
 import { GetProductBySlugHandler } from "../../application/command-handlers/product/GetProductBySlugHandler";
 import { UpdateProductCommand } from "../../application/commands/product/UpdateProductCommand";
@@ -20,6 +21,8 @@ export class ProductController {
     private createProductHandler: CreateProductHandler,
     @inject("GetProductsHandler")
     private getProductsHandler: GetProductsHandler,
+    @inject("GetProductByIdHandler")
+    private getProductByIdHandler: GetProductByIdHandler,
     @inject("GetProductBySlugHandler")
     private getProductBySlugHandler: GetProductBySlugHandler,
     @inject("UpdateProductHandler")
@@ -153,6 +156,55 @@ export class ProductController {
     }
   }
 
+  async getProductById(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+
+      if (!id || id === "undefined" || id === "null") {
+        res.status(400).json({
+          success: false,
+          message: "El ID del producto es requerido",
+        });
+        return;
+      }
+
+      // Convertir ID a número si es string
+      const productId = typeof id === 'string' ? parseInt(id) : id;
+      
+      // Validar que el ID sea un número válido
+      if (isNaN(productId) || productId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: "El ID del producto debe ser un número válido",
+        });
+        return;
+      }
+
+      const product = await this.getProductByIdHandler.handle(productId);
+
+      if (!product) {
+        res.status(404).json({
+          success: false,
+          message: "Producto no encontrado",
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: product,
+      });
+    } catch (error: any) {
+      console.error("❌ Error al obtener producto por ID:", error.message);
+
+      res.status(400).json({
+        success: false,
+        message: error.message || "Error al obtener el producto",
+        details: error?.errors || null,
+      });
+    }
+  }
+
   async getProductBySlug(req: Request, res: Response): Promise<void> {
     try {
       const { slug } = req.params;
@@ -203,16 +255,19 @@ export class ProductController {
         return;
       }
 
-      // Validar que el ID tenga el formato correcto de MongoDB ObjectId
-      if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+      // Convertir ID a número si es string
+      const productId = typeof id === 'string' ? parseInt(id) : id;
+      
+      // Validar que el ID sea un número válido
+      if (isNaN(productId) || productId <= 0) {
         res.status(400).json({
           success: false,
-          message: "El ID del producto debe tener un formato válido",
+          message: "El ID del producto debe ser un número válido",
         });
         return;
       }
 
-      console.log("📦 Actualizando producto con ID:", id);
+      console.log("📦 Actualizando producto con ID:", productId);
       console.log("📦 Datos de actualización:", req.body);
 
       // Validar que el precio sea un número válido si se está actualizando
@@ -226,7 +281,7 @@ export class ProductController {
         req.body.price = price;
       }
 
-      const command = new UpdateProductCommand(id, req.body);
+      const command = new UpdateProductCommand(productId, req.body);
       const product = await this.updateProductHandler.handle(command);
 
       res.status(200).json({
@@ -278,18 +333,21 @@ export class ProductController {
         return;
       }
 
-      // Validar que el ID tenga el formato correcto de MongoDB ObjectId
-      if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+      // Convertir ID a número si es string
+      const productId = typeof id === 'string' ? parseInt(id) : id;
+      
+      // Validar que el ID sea un número válido
+      if (isNaN(productId) || productId <= 0) {
         res.status(400).json({
           success: false,
-          message: "El ID del producto debe tener un formato válido",
+          message: "El ID del producto debe ser un número válido",
         });
         return;
       }
 
-      console.log("🗑️ Eliminando producto con ID:", id);
+      console.log("🗑️ Eliminando producto con ID:", productId);
 
-      const command = new DeleteProductCommand(id);
+      const command = new DeleteProductCommand(productId);
       const deleted = await this.deleteProductHandler.handle(command);
 
       res.status(200).json({

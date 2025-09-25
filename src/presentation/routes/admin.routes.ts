@@ -10,3 +10,8 @@ router.post('/assign-admin/:userId', (req, res) => adminController.assignAdminPe
 
 export default router;
 
+
+
+
+
+

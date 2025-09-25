@@ -11,13 +11,14 @@ export class DeleteProductHandler {
   async handle(command: DeleteProductCommand): Promise<boolean> {
     const { id } = command.data;
     
-    // Verificar que el producto existe
-    const existingProduct = await this.productRepository.findById(id);
+    // Verificar que el producto existe usando ID numérico
+    const existingProduct = await this.productRepository.findByNumericId(id);
     if (!existingProduct) {
       throw new Error(`Producto con ID '${id}' no encontrado`);
     }
 
-    const deleted = await this.productRepository.delete(id);
+    // Eliminar usando el ID numérico
+    const deleted = await this.productRepository.deleteByNumericId(id);
     
     if (!deleted) {
       throw new Error('Error al eliminar el producto');

@@ -7,6 +7,8 @@ export interface IProductRepository {
     findByNumericId(numericId: number): Promise<IProduct | null>;
     findBySlug(slug: string): Promise<IProduct | null>;
     update(id: string, product: Partial<IProduct>): Promise<IProduct | null>;
+    updateByNumericId(id: number, product: Partial<IProduct>): Promise<IProduct | null>;
     delete(id: string): Promise<boolean>;
+    deleteByNumericId(id: number): Promise<boolean>;
     count(): Promise<number>;
 }
