@@ -33,10 +33,31 @@ export class UserRepository implements IUserRepository {
 
   async findByEmail(email: string): Promise<IUser | null> {
     try {
+      Logger.log(`🔍 UserRepository: Buscando usuario con email: "${email}"`);
       const user = await UserModel.findOne({ email });
+      Logger.log(`🔍 UserRepository: Resultado de búsqueda:`, user ? `Usuario encontrado: ${user.email}` : 'Usuario no encontrado');
+      
+      if (user) {
+        Logger.log(`🔍 UserRepository: Detalles del usuario:`, {
+          id: user.id,
+          email: user.email,
+          name: user.name
+        });
+      }
+      
       return user ? user.toObject() : null;
     } catch (error) {
       Logger.error(`Error al buscar usuario con email ${email}:`, error);
+      throw error;
+    }
+  }
+
+  async findByPhone(phone: string, countryCode: number): Promise<IUser | null> {
+    try {
+      const user = await UserModel.findOne({ phone, country_code: countryCode });
+      return user ? user.toObject() : null;
+    } catch (error) {
+      Logger.error(`Error al buscar usuario con teléfono ${phone}:`, error);
       throw error;
     }
   }
@@ -53,8 +74,8 @@ export class UserRepository implements IUserRepository {
 
   async update(id: number, userData: Partial<IUser>): Promise<IUser | null> {
     try {
-      const updatedUser = await UserModel.findByIdAndUpdate(
-        id,
+      const updatedUser = await UserModel.findOneAndUpdate(
+        { id: id },
         { $set: userData },
         { new: true }
       );
@@ -65,9 +86,27 @@ export class UserRepository implements IUserRepository {
     }
   }
 
+  async updatePassword(email: string, password: string): Promise<IUser | null> {
+    try {
+      const bcrypt = require('bcryptjs');
+      const { authConfig } = require('../../config/auth');
+      const hashedPassword = await bcrypt.hash(password, authConfig.BCRYPT_SALT_ROUNDS);
+      
+      const updatedUser = await UserModel.findOneAndUpdate(
+        { email },
+        { $set: { password: hashedPassword } },
+        { new: true }
+      );
+      return updatedUser ? updatedUser.toObject() : null;
+    } catch (error) {
+      Logger.error(`Error al actualizar contraseña para email ${email}:`, error);
+      throw error;
+    }
+  }
+
   async delete(id: number): Promise<boolean> {
     try {
-      const result = await UserModel.findByIdAndDelete(id);
+      const result = await UserModel.findOneAndDelete({ id: id });
       return !!result;
     } catch (error) {
       Logger.error(`Error al eliminar usuario con ID ${id}:`, error);

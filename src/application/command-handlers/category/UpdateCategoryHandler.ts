@@ -12,8 +12,11 @@ export class UpdateCategoryHandler {
   async handle(command: UpdateCategoryCommand): Promise<ICategory> {
     const { id, update } = command.data;
     
-    // Verificar que la categoría existe
-    const existingCategory = await this.categoryRepository.findById(id);
+    // Convertir ID a número si es string
+    const categoryId = typeof id === 'string' ? parseInt(id) : id;
+    
+    // Verificar que la categoría existe usando el ID numérico
+    const existingCategory = await this.categoryRepository.findByAutoIncrementId(categoryId);
     if (!existingCategory) {
       throw new Error(`Categoría con ID '${id}' no encontrada`);
     }
@@ -29,15 +32,23 @@ export class UpdateCategoryHandler {
     // Validar que si se está cambiando parent_id, la categoría padre exista
     if (update.parent_id !== undefined && update.parent_id !== existingCategory.parent_id) {
       if (update.parent_id) {
-        const parentCategory = await this.categoryRepository.findById(update.parent_id.toString());
+        // Convertir parent_id a string para la búsqueda
+        const parentIdString = update.parent_id.toString();
+        const parentCategory = await this.categoryRepository.findByAutoIncrementId(parseInt(parentIdString));
         if (!parentCategory) {
           throw new Error('La categoría padre no existe');
         }
         
         // Evitar que una categoría se convierta en padre de sí misma
-        if (update.parent_id.toString() === id) {
+        if (parentIdString === id.toString()) {
           throw new Error('Una categoría no puede ser padre de sí misma');
         }
+        
+        // Convertir parent_id a string para guardar en la base de datos
+        update.parent_id = parentIdString;
+      } else {
+        // Si parent_id es null, establecerlo como null
+        update.parent_id = null;
       }
     }
 
@@ -48,7 +59,8 @@ export class UpdateCategoryHandler {
       }
     }
 
-    const updatedCategory = await this.categoryRepository.update(id, update);
+    // Actualizar usando el ID numérico
+    const updatedCategory = await this.categoryRepository.updateByAutoIncrementId(categoryId, update);
     
     if (!updatedCategory) {
       throw new Error('Error al actualizar la categoría');
