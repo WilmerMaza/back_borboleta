@@ -25,13 +25,6 @@ const paymentDetailsSchema = new mongoose.Schema({
   updated_at: { type: Date }
 }, { _id: false });
 
-const roleSchema = new mongoose.Schema({
-  id: { type: Number },
-  name: { type: String },
-  permissions: [{ type: mongoose.Schema.Types.Mixed }],
-  created_at: { type: Date },
-  updated_at: { type: Date }
-}, { _id: false });
 
 const userAddressSchema = new mongoose.Schema({
   id: { type: Number },
@@ -77,7 +70,7 @@ const userSchema = new mongoose.Schema({
   payment_account: { type: paymentDetailsSchema },
   role_id: { type: Number },
   role_name: { type: String },
-  role: { type: roleSchema },
+  role: { type: String, default: 'consumer' },
   address: [userAddressSchema],
   point: { type: pointSchema },
   wallet: { type: walletSchema },

@@ -66,9 +66,17 @@ export class ProductRepository implements IProductRepository {
     }
   }
 
-  async findAll(params: { skip: number; limit: number }): Promise<IProduct[]> {
+  async findAll(params: { skip: number; limit: number; categoryId?: string }): Promise<IProduct[]> {
     try {
-      const products = await ProductModel.find()
+      const filter: any = {};
+      
+      // Filtrar por categoría si se proporciona
+      if (params.categoryId) {
+        filter.categories = params.categoryId;
+      }
+      
+      const products = await ProductModel.find(filter)
+        .populate('categories')
         .skip(params.skip)
         .limit(params.limit)
         .sort({ createdAt: -1 });
@@ -282,8 +290,15 @@ export class ProductRepository implements IProductRepository {
     return !!result;
   }
 
-  async count(): Promise<number> {
-    return await ProductModel.countDocuments();
+  async count(params?: { categoryId?: string }): Promise<number> {
+    const filter: any = {};
+    
+    // Filtrar por categoría si se proporciona
+    if (params?.categoryId) {
+      filter.categories = params.categoryId;
+    }
+    
+    return await ProductModel.countDocuments(filter);
   }
 
   async findByNumericId(numericId: number): Promise<IProduct | null> {

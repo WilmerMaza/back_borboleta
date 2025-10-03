@@ -1,30 +1,33 @@
 import { Router } from 'express';
-import { container } from '../../infrastructure/di/registry';
+import { container } from 'tsyringe';
 import { RoleController } from '../controllers/RoleController';
 import { authenticateToken } from '../../middleware/auth';
 
 const router = Router();
 const roleController = container.resolve(RoleController);
 
-// GET /api/roles - Obtener todos los roles con sus permisos
-router.get('/', authenticateToken, (req, res) => roleController.getAllRoles(req, res));
+// Aplicar middleware de autenticación a todas las rutas
+router.use(authenticateToken);
 
-// POST /api/roles - Crear nuevo rol
-router.post('/', authenticateToken, (req, res) => roleController.createRole(req, res));
+// GET /api/roles - Obtener todos los roles
+router.get('/', (req, res) => roleController.getRoles(req, res));
+
+// GET /api/roles/:id - Obtener rol por ID
+router.get('/:id', (req, res) => roleController.getRoleById(req, res));
+
+// POST /api/roles - Crear rol
+router.post('/', (req, res) => roleController.createRole(req, res));
 
 // PUT /api/roles/:id - Actualizar rol
-router.put('/:id', authenticateToken, (req, res) => roleController.updateRole(req, res));
+router.put('/:id', (req, res) => roleController.updateRole(req, res));
 
 // DELETE /api/roles/:id - Eliminar rol
-router.delete('/:id', authenticateToken, (req, res) => roleController.deleteRole(req, res));
+router.delete('/:id', (req, res) => roleController.deleteRole(req, res));
 
-// GET /api/modules - Obtener permisos organizados por módulos
-router.get('/modules', authenticateToken, (req, res) => roleController.getModules(req, res));
+// POST /api/roles/:id/permissions - Asignar permisos a un rol
+router.post('/:id/permissions', (req, res) => roleController.assignPermissions(req, res));
+
+// DELETE /api/roles/:id/permissions - Remover permisos de un rol
+router.delete('/:id/permissions', (req, res) => roleController.removePermissions(req, res));
 
 export default router;
-
-
-
-
-
-

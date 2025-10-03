@@ -62,9 +62,42 @@ export class UserRepository implements IUserRepository {
     }
   }
 
-  async findAll(): Promise<IUser[]> {
+  async findAll(params?: {
+    skip?: number;
+    limit?: number;
+    search?: string;
+    field?: string;
+    sort?: string;
+  }): Promise<IUser[]> {
     try {
-      const users = await UserModel.find();
+      let query = UserModel.find({ status: true });
+      
+      // Aplicar búsqueda si se especifica
+      if (params?.search) {
+        query = query.find({
+          $or: [
+            { name: { $regex: params.search, $options: 'i' } },
+            { email: { $regex: params.search, $options: 'i' } }
+          ]
+        });
+      }
+      
+      // Aplicar ordenamiento si se especifica
+      if (params?.sort) {
+        const sortDirection = params.sort.startsWith('-') ? -1 : 1;
+        const sortField = params.sort.startsWith('-') ? params.sort.substring(1) : params.sort;
+        query = query.sort({ [sortField]: sortDirection });
+      }
+      
+      // Aplicar paginación si se especifica
+      if (params?.skip) {
+        query = query.skip(params.skip);
+      }
+      if (params?.limit) {
+        query = query.limit(params.limit);
+      }
+      
+      const users = await query.exec();
       return users.map(user => user.toObject());
     } catch (error) {
       Logger.error('Error al obtener todos los usuarios:', error);

@@ -23,6 +23,12 @@ import { CheckoutService } from '../../application/services/CheckoutService';
 import { CheckoutController } from '../../presentation/controllers/CheckoutController';
 
 import { LoginHandler } from '../../application/command-handlers/user/LoginHandler';
+import { AdminUserLoginHandler } from '../../application/command-handlers/admin/AdminUserLoginHandler';
+import { CreateAdminUserHandler } from '../../application/command-handlers/admin/CreateAdminUserHandler';
+import { UpdateAdminUserHandler } from '../../application/command-handlers/admin/UpdateAdminUserHandler';
+import { DeleteAdminUserHandler } from '../../application/command-handlers/admin/DeleteAdminUserHandler';
+import { GetAdminUserByIdHandler } from '../../application/query-handlers/admin/GetAdminUserByIdHandler';
+import { GetAdminUsersHandler } from '../../application/query-handlers/admin/GetAdminUsersHandler';
 import { LoginPhoneHandler } from '../../application/command-handlers/user/LoginPhoneHandler';
 import { VerifyEmailOTPHandler } from '../../application/command-handlers/user/VerifyEmailOTPHandler';
 import { VerifyPhoneOTPHandler } from '../../application/command-handlers/user/VerifyPhoneOTPHandler';
@@ -36,6 +42,15 @@ import { DeleteAddressHandler } from '../../application/command-handlers/address
 import { GetUserAddressesHandler } from '../../application/query-handlers/address/GetUserAddressesHandler';
 import { AddressController } from '../../presentation/controllers/AddressController';
 import { AuthService } from '../../application/services/AuthService';
+import { OrderStatusRepository, OrderStatusActivityRepository } from '../repositories/OrderStatusRepository';
+import { OrderStatusController } from '../../presentation/controllers/OrderStatusController';
+import { AdminUserRepository } from '../repositories/AdminUserRepository';
+import { AdminUserController } from '../../presentation/controllers/AdminUserController';
+import { PermissionRepository } from '../repositories/PermissionRepository';
+import { RoleRepository } from '../repositories/RoleRepository';
+import { PermissionController } from '../../presentation/controllers/PermissionController';
+import { RoleController } from '../../presentation/controllers/RoleController';
+import { UserPermissionController } from '../../presentation/controllers/UserPermissionController';
 
 // Registro de repositorios
 container.register('ProductRepository', {
@@ -62,6 +77,26 @@ container.register('AddressRepository', {
   useClass: AddressRepository
 });
 
+container.register('OrderStatusRepository', {
+  useClass: OrderStatusRepository
+});
+
+container.register('OrderStatusActivityRepository', {
+  useClass: OrderStatusActivityRepository
+});
+
+container.register('AdminUserRepository', {
+  useClass: AdminUserRepository
+});
+
+container.register('PermissionRepository', {
+  useClass: PermissionRepository
+});
+
+container.register('RoleRepository', {
+  useClass: RoleRepository
+});
+
 container.register('CartController', {
   useClass: CartController
 });
@@ -80,6 +115,26 @@ container.register('CheckoutController', {
 
 container.register('AuthService', {
   useClass: AuthService
+});
+
+container.register('OrderStatusController', {
+  useClass: OrderStatusController
+});
+
+container.register('AdminUserController', {
+  useClass: AdminUserController
+});
+
+container.register('PermissionController', {
+  useClass: PermissionController
+});
+
+container.register('RoleController', {
+  useClass: RoleController
+});
+
+container.register('UserPermissionController', {
+  useClass: UserPermissionController
 });
 
 // Registro de handlers
@@ -125,6 +180,30 @@ container.register('RegisterUserHandler', {
 
 container.register('LoginHandler', {
   useClass: LoginHandler
+});
+
+container.register('AdminUserLoginHandler', {
+  useClass: AdminUserLoginHandler
+});
+
+container.register('CreateAdminUserHandler', {
+  useClass: CreateAdminUserHandler
+});
+
+container.register('UpdateAdminUserHandler', {
+  useClass: UpdateAdminUserHandler
+});
+
+container.register('DeleteAdminUserHandler', {
+  useClass: DeleteAdminUserHandler
+});
+
+container.register('GetAdminUserByIdHandler', {
+  useClass: GetAdminUserByIdHandler
+});
+
+container.register('GetAdminUsersHandler', {
+  useClass: GetAdminUsersHandler
 });
 
 container.register('LoginPhoneHandler', {

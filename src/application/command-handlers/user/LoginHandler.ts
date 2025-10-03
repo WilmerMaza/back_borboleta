@@ -18,40 +18,46 @@ export class LoginHandler {
     expires_in: number;
   }> {
     try {
-      Logger.log('Iniciando proceso de login para email:', command.email);
+      Logger.log('Iniciando proceso de login para usuario normal:', command.email);
 
-      // Buscar usuario por email
-      Logger.log('Buscando usuario en la base de datos...');
+      // Buscar usuario normal
       const user = await this.userRepository.findByEmail(command.email);
-      Logger.log('Resultado de búsqueda:', user ? `Usuario encontrado: ${user.email}` : 'Usuario no encontrado');
       
       if (!user) {
-        Logger.log('❌ Usuario no encontrado en la base de datos');
+        Logger.log('❌ Usuario normal no encontrado:', command.email);
         throw new Error('Credenciales inválidas');
       }
 
+      Logger.log('✅ Usuario normal encontrado:', {
+        id: user.id,
+        email: user.email,
+        name: user.name
+      });
+
       // Verificar contraseña
-      Logger.log('Verificando contraseña...');
-      Logger.log('Password recibida:', command.password);
-      Logger.log('Password hash en BD:', user.password);
-      
       const isPasswordValid = await this.authService.comparePassword(
         command.password,
         user.password
       );
-      
-      Logger.log('Resultado de verificación de contraseña:', isPasswordValid);
 
       if (!isPasswordValid) {
-        Logger.log('❌ Contraseña inválida');
+        Logger.log('❌ Contraseña inválida para usuario normal:', command.email);
         throw new Error('Credenciales inválidas');
       }
+
+      Logger.log('✅ Contraseña válida para usuario normal:', command.email);
 
       // Generar token JWT
       const token = this.authService.generateToken(user.id!, user.email);
 
       // Preparar respuesta del usuario (sin contraseña)
       const { password, ...userWithoutPassword } = user;
+
+      Logger.log('✅ Usuario normal autenticado exitosamente:', {
+        email: userWithoutPassword.email,
+        id: userWithoutPassword.id,
+        name: userWithoutPassword.name
+      });
 
       return {
         user: userWithoutPassword,
@@ -65,5 +71,3 @@ export class LoginHandler {
     }
   }
 }
-
-

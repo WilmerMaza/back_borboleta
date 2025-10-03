@@ -19,6 +19,7 @@ import { GetUserProfileHandler } from '../../application/query-handlers/user/Get
 import { Logger } from '../../shared/utils/logger';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { IUserRepository } from '../../domain/repositories/IUserRepository';
+import { IAdminUserRepository } from '../../domain/repositories/IAdminUserRepository';
 import { container } from 'tsyringe';
 
 @injectable()
@@ -358,12 +359,12 @@ export class UserController {
     }
   };
 
-  // DELETE /api/users/:id - Eliminar usuario
+  // DELETE /api/users/:id - Eliminar usuario administrativo (solo AdminUser)
   handleDeleteUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
 
-      Logger.log('Solicitud de eliminación de usuario recibida', { id });
+      Logger.log('Solicitud de eliminación de usuario administrativo recibida', { id });
       
       if (!req.user) {
         res.status(401).json({
@@ -373,18 +374,8 @@ export class UserController {
         return;
       }
 
-      const userRepository = container.resolve<IUserRepository>('UserRepository');
+      const adminUserRepository = container.resolve<IAdminUserRepository>('AdminUserRepository');
       
-      // Verificar que el usuario existe
-      const existingUser = await userRepository.findById(parseInt(id));
-      if (!existingUser) {
-        res.status(404).json({
-          success: false,
-          message: 'Usuario no encontrado'
-        });
-        return;
-      }
-
       // Verificar que no se esté eliminando a sí mismo
       if (parseInt(id) === req.user.userId) {
         res.status(400).json({
@@ -394,27 +385,53 @@ export class UserController {
         return;
       }
 
-      // Eliminar usuario
-      const deleted = await userRepository.delete(parseInt(id));
-      
-      if (!deleted) {
-        res.status(500).json({
+      // Buscar el usuario administrativo
+      const existingAdminUser = await adminUserRepository.findById(parseInt(id));
+      if (!existingAdminUser) {
+        res.status(404).json({
           success: false,
-          message: 'Error al eliminar el usuario'
+          message: 'Usuario administrativo no encontrado'
         });
         return;
       }
 
+      Logger.log('Usuario administrativo encontrado, eliminando...', { 
+        id, 
+        email: existingAdminUser.email,
+        name: existingAdminUser.name 
+      });
+
+      // Eliminar usuario administrativo
+      const deleted = await adminUserRepository.delete(parseInt(id));
+      
+      if (!deleted) {
+        res.status(500).json({
+          success: false,
+          message: 'Error al eliminar el usuario administrativo'
+        });
+        return;
+      }
+
+      Logger.log('Usuario administrativo eliminado exitosamente', { 
+        id, 
+        email: existingAdminUser.email 
+      });
+
       res.status(200).json({
         success: true,
-        message: 'Usuario eliminado exitosamente'
+        message: 'Usuario administrativo eliminado exitosamente',
+        details: {
+          deletedUserId: id,
+          deletedUserEmail: existingAdminUser.email,
+          deletedUserName: existingAdminUser.name
+        }
       });
     } catch (error: any) {
-      Logger.error('Error al eliminar usuario:', error);
+      Logger.error('Error al eliminar usuario administrativo:', error);
 
       res.status(500).json({
         success: false,
-        message: error.message || 'Error al eliminar usuario'
+        message: error.message || 'Error al eliminar usuario administrativo'
       });
     }
   };
