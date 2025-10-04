@@ -20,6 +20,8 @@ import userPermissionRoutes from './presentation/routes/user-permission.routes';
 import adminRoutes from './presentation/routes/admin.routes';
 import adminUserRoutes from './presentation/routes/admin-user.routes';
 import orderStatusRoutes from './presentation/routes/order-status.routes';
+import uploadRoutes from './presentation/routes/upload.routes';
+import attachmentRoutes from './presentation/routes/attachment.routes';
 import userRoutes from './routes/userRoutes';
 import connectDB from './infrastructure/database/config/database';
 
@@ -60,6 +62,8 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/setting-theme', settingThemeRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/attachments', attachmentRoutes);
 
 // Ruta de prueba
 app.get('/', (_req, res) => {
