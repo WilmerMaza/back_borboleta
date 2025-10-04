@@ -12,3 +12,5 @@ export class UpdateAdminUserCommand {
     public readonly is_active?: boolean
   ) {}
 }
+
+

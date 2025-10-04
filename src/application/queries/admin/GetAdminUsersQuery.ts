@@ -6,3 +6,5 @@ export class GetAdminUsersQuery {
     public readonly roleId?: number
   ) {}
 }
+
+

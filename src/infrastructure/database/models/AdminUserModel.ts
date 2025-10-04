@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
+// Si ves un error de tipado, instala los tipos: npm i --save-dev @types/bcryptjs
 
 const AutoIncrement = require("mongoose-sequence")(mongoose);
 
