@@ -20,6 +20,9 @@ import userPermissionRoutes from './presentation/routes/user-permission.routes';
 import adminRoutes from './presentation/routes/admin.routes';
 import adminUserRoutes from './presentation/routes/admin-user.routes';
 import orderStatusRoutes from './presentation/routes/order-status.routes';
+import uploadRoutes from './presentation/routes/upload.routes';
+import attachmentRoutes from './presentation/routes/attachment.routes';
+import userRoutes from './routes/userRoutes';
 import connectDB from './infrastructure/database/config/database';
 
 dotenv.config();
@@ -51,13 +54,16 @@ app.use('/api/admin', adminUserRoutes);
 app.use('/api', orderStatusRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/users/addresses', addressRoutes);
-app.use('/api/users', userPermissionRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/user-permissions', userPermissionRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/setting-theme', settingThemeRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/attachments', attachmentRoutes);
 
 // Ruta de prueba
 app.get('/', (_req, res) => {

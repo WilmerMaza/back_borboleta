@@ -51,6 +51,8 @@ import { RoleRepository } from '../repositories/RoleRepository';
 import { PermissionController } from '../../presentation/controllers/PermissionController';
 import { RoleController } from '../../presentation/controllers/RoleController';
 import { UserPermissionController } from '../../presentation/controllers/UserPermissionController';
+import { AttachmentRepository } from '../repositories/AttachmentRepository';
+import { AttachmentService } from '../../application/services/AttachmentService';
 
 // Registro de repositorios
 container.register('ProductRepository', {
@@ -97,6 +99,10 @@ container.register('RoleRepository', {
   useClass: RoleRepository
 });
 
+container.register('IAttachmentRepository', {
+  useClass: AttachmentRepository
+});
+
 container.register('CartController', {
   useClass: CartController
 });
@@ -135,6 +141,10 @@ container.register('RoleController', {
 
 container.register('UserPermissionController', {
   useClass: UserPermissionController
+});
+
+container.register('AttachmentService', {
+  useClass: AttachmentService
 });
 
 // Registro de handlers
