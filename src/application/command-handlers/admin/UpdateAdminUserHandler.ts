@@ -46,6 +46,10 @@ export class UpdateAdminUserHandler {
 
       const updatedUser = await this.adminUserRepository.update(command.id, updateData);
 
+      if (!updatedUser) {
+        throw new Error('Error al actualizar el AdminUser');
+      }
+
       Logger.log('✅ AdminUser actualizado exitosamente:', {
         id: updatedUser.id,
         email: updatedUser.email,

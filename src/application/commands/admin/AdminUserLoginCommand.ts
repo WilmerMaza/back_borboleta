@@ -4,3 +4,5 @@ export class AdminUserLoginCommand {
     public readonly password: string
   ) {}
 }
+
+

@@ -12,3 +12,5 @@ router.post('/login', adminUserAuthController.login);
 router.get('/me', authenticateToken, adminUserAuthController.getMe);
 
 export default router;
+
+
