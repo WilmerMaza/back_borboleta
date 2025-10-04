@@ -29,6 +29,7 @@
     "slugify": "^1.6.6",
     "tsyringe": "^4.10.0"
   },
+  
   "devDependencies": {
     "@types/cors": "^2.8.18",
     "@types/express": "^5.0.1",
