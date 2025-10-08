@@ -19,8 +19,9 @@ import { GetUserProfileHandler } from '../../application/query-handlers/user/Get
 import { Logger } from '../../shared/utils/logger';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { IUserRepository } from '../../domain/repositories/IUserRepository';
-import { IAdminUserRepository } from '../../domain/repositories/IAdminUserRepository';
+
 import { container } from 'tsyringe';
+import { UserRepository } from 'src/infrastructure/repositories/UserRepository';
 
 @injectable()
 export class UserController {
@@ -374,7 +375,7 @@ export class UserController {
         return;
       }
 
-      const adminUserRepository = container.resolve<IAdminUserRepository>('AdminUserRepository');
+      const adminUserRepository = container.resolve<UserRepository>('AdminUserRepository');
       
       // Verificar que no se esté eliminando a sí mismo
       if (parseInt(id) === req.user.userId) {

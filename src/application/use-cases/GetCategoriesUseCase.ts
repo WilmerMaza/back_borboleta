@@ -52,10 +52,24 @@ export class GetCategoriesUseCase {
 
     // Obtener categorías con paginación
     const categories = await CategoryModel.find(filters)
-      .populate('subcategories')
       .limit(limit)
       .skip(skip)
       .sort({ createdAt: -1 });
+
+    // Solo obtener subcategorías si estamos obteniendo categorías principales (parent_id: null)
+    if (parent_id === undefined || parent_id === null) {
+      for (const category of categories) {
+        const subcategories = await CategoryModel.find({ 
+          parent_id: category.id.toString() 
+        });
+        (category as any).subcategories = subcategories;
+      }
+    } else {
+      // Si estamos obteniendo subcategorías específicas, no necesitamos cargar más subcategorías
+      for (const category of categories) {
+        (category as any).subcategories = [];
+      }
+    }
 
     // Obtener total de documentos
     const total = await CategoryModel.countDocuments(filters);

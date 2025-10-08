@@ -59,7 +59,7 @@ export class AttachmentService {
   /**
    * Sube archivos a Firebase Storage y crea registros en la base de datos
    */
-  async uploadFiles(files: Express.Multer.File[], createdById: number): Promise<Attachment[]> {
+  async uploadFiles(files: any[], createdById: number): Promise<Attachment[]> {
     const uploadedAttachments: Attachment[] = [];
 
     for (const file of files) {

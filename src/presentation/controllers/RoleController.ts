@@ -121,22 +121,32 @@ export class RoleController {
     }
   }
 
-  // POST /api/roles - Crear rol
+  // POST /api/roles - Crear rol con permisos
   async createRole(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const roleData: RoleCreateRequest = req.body;
 
       // Validaciones básicas
-      if (!roleData.name || !roleData.slug) {
+      if (!roleData.name) {
         res.status(400).json({
           success: false,
-          message: 'Nombre y slug son requeridos'
+          message: 'El nombre es requerido'
         });
         return;
       }
 
+      // Generar slug automáticamente si no se proporciona
+      let slug = roleData.slug;
+      if (!slug) {
+        slug = roleData.name.toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '') // Remover caracteres especiales
+          .replace(/\s+/g, '-') // Reemplazar espacios con guiones
+          .replace(/-+/g, '-') // Reemplazar múltiples guiones con uno solo
+          .trim();
+      }
+
       // Verificar si el slug ya existe
-      const existingRole = await this.roleRepository.findBySlug(roleData.slug);
+      const existingRole = await this.roleRepository.findBySlug(slug);
       if (existingRole) {
         res.status(400).json({
           success: false,
@@ -145,16 +155,33 @@ export class RoleController {
         return;
       }
 
+      // Crear el rol sin permisos inicialmente
       const role = await this.roleRepository.create({
-        ...roleData,
+        name: roleData.name,
+        slug: slug, // Usar el slug generado o proporcionado
+        guard_name: roleData.guard_name || 'web',
+        system_reserve: roleData.system_reserve || 0,
+        description: roleData.description,
+        permissions: [], // Iniciar vacío
         status: roleData.status ?? true
       });
+
+      // Si se proporcionan permisos, asignarlos al rol usando el método del repositorio
+      // Aceptar tanto 'permission_ids' como 'permissions' por compatibilidad
+      const permissionIds = roleData.permission_ids || (req.body.permissions as number[]);
+      
+      if (permissionIds && permissionIds.length > 0) {
+        await this.roleRepository.assignPermissions(role.id!, permissionIds);
+      }
+
+      // Obtener el rol completo para la respuesta
+      const roleWithPermissions = await this.roleRepository.findById(role.id!);
 
       res.status(201).json({
         success: true,
         message: 'Rol creado exitosamente',
         data: {
-          role
+          role: roleWithPermissions
         }
       });
     } catch (error: any) {

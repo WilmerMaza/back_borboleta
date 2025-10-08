@@ -46,7 +46,7 @@ const categorySchema = new Schema<ICategoryModel>(
 // Virtual para subcategorías
 categorySchema.virtual("subcategories", {
   ref: "Category",
-  localField: "_id",
+  localField: "id", 
   foreignField: "parent_id",
 });
 
