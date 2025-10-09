@@ -70,7 +70,6 @@ const userSchema = new mongoose.Schema({
   payment_account: { type: paymentDetailsSchema },
   role_id: { type: Number },
   role_name: { type: String },
-  role: { type: String, default: 'consumer' },
   address: [userAddressSchema],
   point: { type: pointSchema },
   wallet: { type: walletSchema },

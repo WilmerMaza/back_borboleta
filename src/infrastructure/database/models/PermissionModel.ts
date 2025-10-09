@@ -17,6 +17,10 @@ export interface IPermissionDocument extends Document {
 }
 
 const permissionSchema = new Schema<IPermissionDocument>({
+  id: {
+    type: Number,
+    unique: true
+  },
   name: {
     type: String,
     required: true,
@@ -43,7 +47,7 @@ const permissionSchema = new Schema<IPermissionDocument>({
   module: {
     type: String,
     required: true,
-    enum: ['users', 'products', 'orders', 'reports', 'settings', 'categories', 'dashboard', 'admin']
+    enum: ['users', 'products', 'orders', 'reports', 'settings', 'categories', 'dashboard', 'admin', 'roles', 'stores', 'wallet', 'refunds', 'reviews']
   },
   action: {
     type: String,
@@ -63,7 +67,7 @@ const permissionSchema = new Schema<IPermissionDocument>({
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
-// Plugin para auto-incremento
+// Plugin para auto-incremento (solo si no se especifica el ID)
 permissionSchema.plugin(AutoIncrement, { inc_field: 'id', id: 'permission_id' });
 
 // Índices

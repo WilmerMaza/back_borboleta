@@ -19,7 +19,7 @@ export class RoleRepository implements IRoleRepository {
 
   async findById(id: number): Promise<IRole | null> {
     try {
-      const role = await RoleModel.findOne({ id, status: true });
+      const role = await RoleModel.findOne({ id });
       return role ? (role as any).toObject() : null;
     } catch (error) {
       Logger.error(`Error al buscar rol con ID ${id}:`, error);

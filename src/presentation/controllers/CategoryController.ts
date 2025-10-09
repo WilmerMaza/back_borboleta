@@ -25,7 +25,7 @@ export class CategoryController {
     try {
       const categoryData = req.body;
 
-      // Validar datos requeridos
+     
       if (!categoryData.name) {
         res.status(400).json({
           success: false,

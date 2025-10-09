@@ -3,6 +3,7 @@ import { ProductRepository } from '../repositories/ProductRepository';
 import { CreateProductHandler } from '../../application/command-handlers/product/CreateProductHandler';
 import { CreateProductUseCase } from '../../application/use-cases/CreateProductUseCase';
 import { RegisterUserHandler } from '../../application/command-handlers/user/RegisterUserHandler';
+import { UnifiedLoginHandler } from '../../application/command-handlers/user/UnifiedLoginHandler';
 import { UserRepository } from '../repositories/UserRepository';
 import { GetProductsHandler } from '../../application/command-handlers/product/GetProductsHandler';
 import { GetProductsUseCase } from '../../application/use-cases/GetProductsUseCase';
@@ -23,12 +24,6 @@ import { CheckoutService } from '../../application/services/CheckoutService';
 import { CheckoutController } from '../../presentation/controllers/CheckoutController';
 
 import { LoginHandler } from '../../application/command-handlers/user/LoginHandler';
-import { AdminUserLoginHandler } from '../../application/command-handlers/admin/AdminUserLoginHandler';
-import { CreateAdminUserHandler } from '../../application/command-handlers/admin/CreateAdminUserHandler';
-import { UpdateAdminUserHandler } from '../../application/command-handlers/admin/UpdateAdminUserHandler';
-import { DeleteAdminUserHandler } from '../../application/command-handlers/admin/DeleteAdminUserHandler';
-import { GetAdminUserByIdHandler } from '../../application/query-handlers/admin/GetAdminUserByIdHandler';
-import { GetAdminUsersHandler } from '../../application/query-handlers/admin/GetAdminUsersHandler';
 import { LoginPhoneHandler } from '../../application/command-handlers/user/LoginPhoneHandler';
 import { VerifyEmailOTPHandler } from '../../application/command-handlers/user/VerifyEmailOTPHandler';
 import { VerifyPhoneOTPHandler } from '../../application/command-handlers/user/VerifyPhoneOTPHandler';
@@ -44,8 +39,6 @@ import { AddressController } from '../../presentation/controllers/AddressControl
 import { AuthService } from '../../application/services/AuthService';
 import { OrderStatusRepository, OrderStatusActivityRepository } from '../repositories/OrderStatusRepository';
 import { OrderStatusController } from '../../presentation/controllers/OrderStatusController';
-import { AdminUserRepository } from '../repositories/AdminUserRepository';
-import { AdminUserController } from '../../presentation/controllers/AdminUserController';
 import { PermissionRepository } from '../repositories/PermissionRepository';
 import { RoleRepository } from '../repositories/RoleRepository';
 import { PermissionController } from '../../presentation/controllers/PermissionController';
@@ -87,9 +80,6 @@ container.register('OrderStatusActivityRepository', {
   useClass: OrderStatusActivityRepository
 });
 
-container.register('AdminUserRepository', {
-  useClass: AdminUserRepository
-});
 
 container.register('PermissionRepository', {
   useClass: PermissionRepository
@@ -127,9 +117,6 @@ container.register('OrderStatusController', {
   useClass: OrderStatusController
 });
 
-container.register('AdminUserController', {
-  useClass: AdminUserController
-});
 
 container.register('PermissionController', {
   useClass: PermissionController
@@ -188,33 +175,14 @@ container.register('RegisterUserHandler', {
   useClass: RegisterUserHandler
 });
 
+container.register('UnifiedLoginHandler', {
+  useClass: UnifiedLoginHandler
+});
+
 container.register('LoginHandler', {
   useClass: LoginHandler
 });
 
-container.register('AdminUserLoginHandler', {
-  useClass: AdminUserLoginHandler
-});
-
-container.register('CreateAdminUserHandler', {
-  useClass: CreateAdminUserHandler
-});
-
-container.register('UpdateAdminUserHandler', {
-  useClass: UpdateAdminUserHandler
-});
-
-container.register('DeleteAdminUserHandler', {
-  useClass: DeleteAdminUserHandler
-});
-
-container.register('GetAdminUserByIdHandler', {
-  useClass: GetAdminUserByIdHandler
-});
-
-container.register('GetAdminUsersHandler', {
-  useClass: GetAdminUsersHandler
-});
 
 container.register('LoginPhoneHandler', {
   useClass: LoginPhoneHandler

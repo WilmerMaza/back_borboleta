@@ -13,7 +13,7 @@ export interface IRole {
 
 export interface RoleCreateRequest {
   name: string;
-  slug: string;
+  slug?: string; // Ahora es opcional
   guard_name?: string;
   system_reserve?: number;
   description?: string;
