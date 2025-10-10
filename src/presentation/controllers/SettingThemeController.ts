@@ -66,6 +66,58 @@ export class SettingThemeController {
     }
   }
 
+  // PUT /api/setting-theme/:slug
+  async updateTheme(req: Request, res: Response): Promise<void> {
+    try {
+      const { slug } = req.params;
+      const { name, content } = req.body;
+      
+      console.log('📥 Actualizando tema:', slug);
+      console.log('📦 Name recibido:', name);
+      console.log('📄 Content recibido:', content ? 'Sí' : 'No');
+      
+      if (!name) {
+        res.status(400).json({
+          success: false,
+          message: 'El campo "name" es requerido'
+        });
+        return;
+      }
+      
+      if (!content) {
+        res.status(400).json({
+          success: false,
+          message: 'El campo "content" es requerido'
+        });
+        return;
+      }
+
+      const theme = await this.settingThemeService.updateThemeBySlug({ slug, name, content });
+      
+      if (!theme) {
+        res.status(404).json({
+          success: false,
+          message: `Tema con slug "${slug}" no encontrado`
+        });
+        return;
+      }
+
+      console.log('✅ Tema actualizado exitosamente');
+      
+      res.json({
+        success: true,
+        message: 'Tema actualizado exitosamente',
+        data: theme
+      });
+    } catch (error: any) {
+      console.error('❌ Error al actualizar tema:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error al actualizar el tema'
+      });
+    }
+  }
+
   // DELETE /api/setting-theme/:name
   async deleteTheme(req: Request, res: Response): Promise<void> {
     try {
