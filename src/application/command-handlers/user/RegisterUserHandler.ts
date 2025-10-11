@@ -1,31 +1,32 @@
-import { injectable, inject } from 'tsyringe';
-import { IUserRepository } from '../../../domain/repositories/IUserRepository';
-import { AuthService } from '../../services/AuthService';
-import { RegisterUserCommand } from '../../commands/user/RegisterUserCommand';
-import { Logger } from '../../../shared/utils/logger';
+import { injectable, inject } from "tsyringe";
+import { IUserRepository } from "../../../domain/repositories/IUserRepository";
+import { AuthService } from "../../services/AuthService";
+import { RegisterUserCommand } from "../../commands/user/RegisterUserCommand";
 
 @injectable()
 export class RegisterUserHandler {
   constructor(
-    @inject('UserRepository') private userRepository: IUserRepository,
-    @inject('AuthService') private authService: AuthService
+    @inject("UserRepository") private userRepository: IUserRepository,
+    @inject("AuthService") private authService: AuthService
   ) {}
 
   async handle(command: RegisterUserCommand): Promise<any> {
     try {
       const userData = command.data;
-      Logger.log('Iniciando proceso de registro de usuario:', userData.email);
 
       // Verificar si el usuario ya existe
-      const existingUser = await this.userRepository.findByEmail(userData.email);
-      
+      const existingUser = await this.userRepository.findByEmail(
+        userData.email
+      );
+
       if (existingUser) {
-        Logger.log('❌ Usuario ya existe:', userData.email);
-        throw new Error('El email ya está registrado');
+        throw new Error("El email ya está registrado");
       }
 
       // Hash de la contraseña
-      const hashedPassword = await this.authService.hashPassword(userData.password);
+      const hashedPassword = await this.authService.hashPassword(
+        userData.password
+      );
 
       // Crear usuario con rol "consumer" (cliente) por defecto
       const newUserData = {
@@ -39,28 +40,26 @@ export class RegisterUserHandler {
         email_verified_at: undefined,
         is_approved: false,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       const user = await this.userRepository.create(newUserData);
 
-      Logger.log('✅ Usuario registrado exitosamente:', {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role_id: user.role_id
-      });
-
       // Preparar respuesta del usuario (sin contraseña)
-      const { password, ...userWithoutPassword } = user;
 
       return {
-        ...userWithoutPassword,
-        role_name: 'consumer',
-        role_slug: 'consumer'
+        email: user.email,
+        number: {
+          phone: user.phone,
+          country_code: user.country_code,
+        },
+        token: "",
+        role_name: "consumer",
+        role_slug: "consumer",
+        access_token: this.authService.generateToken(user.id!, user.email),
+        permissions: [],
       };
     } catch (error: any) {
-      Logger.error('Error en RegisterUserHandler:', error);
       throw error;
     }
   }
