@@ -12,6 +12,7 @@ import { DeleteProductCommand } from "../../application/commands/product/DeleteP
 import { DeleteProductHandler } from "../../application/command-handlers/product/DeleteProductHandler";
 import mongoose from "mongoose";
 import { CategoryRepository } from "../../infrastructure/repositories/CategoryRepository";
+import { IAttachmentRepository } from "../../domain/repositories/IAttachmentRepository";
 
 
 @injectable()
@@ -30,7 +31,9 @@ export class ProductController {
     @inject("DeleteProductHandler")
     private deleteProductHandler: DeleteProductHandler,
     @inject("CategoryRepository")
-    private categoryRepository: CategoryRepository
+    private categoryRepository: CategoryRepository,
+    @inject("IAttachmentRepository")
+    private attachmentRepository: IAttachmentRepository
   ) {}
 
   async createProduct(req: Request, res: Response): Promise<void> {
@@ -71,6 +74,46 @@ export class ProductController {
         }
 
         productData.categories = validatedCategories;
+      }
+
+      // Procesar product_galleries_id
+      if (Array.isArray(productData.product_galleries_id)) {
+        const galleries = [];
+        for (const id of productData.product_galleries_id) {
+          const attachment = await this.attachmentRepository.findById(id);
+          if (attachment) {
+            galleries.push({
+              id: attachment.id,
+              name: attachment.name,
+              disk: attachment.disk,
+              file_name: attachment.file_name,
+              mime_type: attachment.mime_type,
+              asset_url: attachment.asset_url,
+              original_url: attachment.original_url
+            });
+          }
+        }
+        productData.product_galleries = galleries;
+        // Eliminar el campo temporal
+        delete productData.product_galleries_id;
+      }
+
+      // Procesar product_thumbnail_id
+      if (productData.product_thumbnail_id) {
+        const thumbnail = await this.attachmentRepository.findById(productData.product_thumbnail_id);
+        if (thumbnail) {
+          productData.product_thumbnail = {
+            id: thumbnail.id,
+            name: thumbnail.name,
+            disk: thumbnail.disk,
+            file_name: thumbnail.file_name,
+            mime_type: thumbnail.mime_type,
+            asset_url: thumbnail.asset_url,
+            original_url: thumbnail.original_url
+          };
+        }
+        // Eliminar el campo temporal
+        delete productData.product_thumbnail_id;
       }
 
       // Ejecutar el comando
@@ -279,6 +322,46 @@ export class ProductController {
           );
         }
         req.body.price = price;
+      }
+
+      // Procesar product_galleries_id si existe
+      if (Array.isArray(req.body.product_galleries_id)) {
+        const galleries = [];
+        for (const attachmentId of req.body.product_galleries_id) {
+          const attachment = await this.attachmentRepository.findById(attachmentId);
+          if (attachment) {
+            galleries.push({
+              id: attachment.id,
+              name: attachment.name,
+              disk: attachment.disk,
+              file_name: attachment.file_name,
+              mime_type: attachment.mime_type,
+              asset_url: attachment.asset_url,
+              original_url: attachment.original_url
+            });
+          }
+        }
+        req.body.product_galleries = galleries;
+        // Eliminar el campo temporal
+        delete req.body.product_galleries_id;
+      }
+
+      // Procesar product_thumbnail_id si existe
+      if (req.body.product_thumbnail_id) {
+        const thumbnail = await this.attachmentRepository.findById(req.body.product_thumbnail_id);
+        if (thumbnail) {
+          req.body.product_thumbnail = {
+            id: thumbnail.id,
+            name: thumbnail.name,
+            disk: thumbnail.disk,
+            file_name: thumbnail.file_name,
+            mime_type: thumbnail.mime_type,
+            asset_url: thumbnail.asset_url,
+            original_url: thumbnail.original_url
+          };
+        }
+        // Eliminar el campo temporal
+        delete req.body.product_thumbnail_id;
       }
 
       const command = new UpdateProductCommand(productId, req.body);

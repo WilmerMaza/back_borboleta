@@ -81,8 +81,28 @@ const productSchema = new Schema<IProductModel>(
     // Asociaciones (guardamos solo los IDs, los detalles se pueden poblar)
     wholesales: [{ type: Schema.Types.Mixed }],
     variations: [{ type: Schema.Types.ObjectId, ref: "Variation" }],
-    product_thumbnail: { type: Schema.Types.ObjectId, ref: "Attachment" },
-    product_galleries: [{ type: Schema.Types.ObjectId, ref: "Attachment" }],
+    product_thumbnail: { 
+      type: {
+        id: { type: Number },
+        name: { type: String },
+        disk: { type: String },
+        file_name: { type: String },
+        mime_type: { type: String },
+        asset_url: { type: String },
+        original_url: { type: String }
+      }
+    },
+    product_galleries: [{ 
+      type: {
+        id: { type: Number },
+        name: { type: String },
+        disk: { type: String },
+        file_name: { type: String },
+        mime_type: { type: String },
+        asset_url: { type: String },
+        original_url: { type: String }
+      }
+    }],
     attributes: [{ type: Schema.Types.ObjectId, ref: "Attribute" }],
     categories: [{ type: Schema.Types.ObjectId, ref: "Category" }],
     tags: [{ type: Schema.Types.ObjectId, ref: "Tag" }],

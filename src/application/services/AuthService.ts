@@ -1,7 +1,6 @@
-import { injectable } from 'tsyringe';
-import jwt from 'jsonwebtoken';
-import { Logger } from '../../shared/utils/logger';
-import { authConfig } from '../../config/auth';
+import { injectable } from "tsyringe";
+import jwt from "jsonwebtoken";
+import { authConfig } from "../../config/auth";
 
 @injectable()
 export class AuthService {
@@ -17,15 +16,14 @@ export class AuthService {
       const payload = {
         userId,
         email,
-        iat: Math.floor(Date.now() / 1000)
+        iat: Math.floor(Date.now() / 1000),
       };
 
       return jwt.sign(payload, this.JWT_SECRET, {
-        expiresIn: this.JWT_EXPIRES_IN
+        expiresIn: this.JWT_EXPIRES_IN,
       } as jwt.SignOptions);
     } catch (error) {
-      Logger.error('Error al generar token JWT:', error);
-      throw new Error('Error al generar token de autenticación');
+      throw new Error("Error al generar token de autenticación");
     }
   }
 
@@ -33,8 +31,7 @@ export class AuthService {
     try {
       return jwt.verify(token, this.JWT_SECRET);
     } catch (error) {
-      Logger.error('Error al verificar token JWT:', error);
-      throw new Error('Token inválido o expirado');
+      throw new Error("Token inválido o expirado");
     }
   }
 
@@ -45,14 +42,14 @@ export class AuthService {
   storeOTP(identifier: string, otp: string): void {
     const expiresAt = Date.now() + this.OTP_EXPIRES_IN;
     this.otpStorage.set(identifier, { otp, expiresAt });
-    
+
     // Limpiar OTPs expirados
     this.cleanExpiredOTPs();
   }
 
   verifyOTP(identifier: string, otp: string): boolean {
     const stored = this.otpStorage.get(identifier);
-    
+
     if (!stored) {
       return false;
     }
@@ -80,12 +77,15 @@ export class AuthService {
   }
 
   async hashPassword(password: string): Promise<string> {
-    const bcrypt = require('bcryptjs');
+    const bcrypt = require("bcryptjs");
     return bcrypt.hash(password, authConfig.BCRYPT_SALT_ROUNDS);
   }
 
-  async comparePassword(password: string, hashedPassword: string): Promise<boolean> {
-    const bcrypt = require('bcryptjs');
+  async comparePassword(
+    password: string,
+    hashedPassword: string
+  ): Promise<boolean> {
+    const bcrypt = require("bcryptjs");
     return bcrypt.compare(password, hashedPassword);
   }
 }

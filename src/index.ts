@@ -5,7 +5,6 @@ import cors from 'cors';
 import './infrastructure/di/registry';  // Importar el registro de dependencias
 import './infrastructure/database/models';  // Importar todos los modelos
 import productRoutes from './presentation/routes/product.routes';
-import userRoutes from './routes/userRoutes';
 import categoryRoutes from './presentation/routes/category.routes';
 import orderRoutes from './presentation/routes/order.routes';
 import cartRoutes from './presentation/routes/cart.routes';
@@ -14,8 +13,15 @@ import settingsRoutes from './presentation/routes/settings.routes';
 import settingThemeRoutes from './presentation/routes/setting-theme.routes';
 import addressRoutes from './presentation/routes/address.routes';
 import authRoutes from './presentation/routes/auth.routes';
+import unifiedAuthRoutes from './presentation/routes/unified-auth.routes';
 import roleRoutes from './presentation/routes/role.routes';
+import permissionRoutes from './presentation/routes/permission.routes';
+import userPermissionRoutes from './presentation/routes/user-permission.routes';
 import adminRoutes from './presentation/routes/admin.routes';
+import orderStatusRoutes from './presentation/routes/order-status.routes';
+import uploadRoutes from './presentation/routes/upload.routes';
+import attachmentRoutes from './presentation/routes/attachment.routes';
+import userRoutes from './routes/userRoutes';
 import connectDB from './infrastructure/database/config/database';
 
 dotenv.config();
@@ -39,17 +45,23 @@ connectDB()
 
 // Rutas
 app.use('/api/auth', authRoutes);
+app.use('/api', unifiedAuthRoutes); // Rutas unificadas para login
 app.use('/api/roles', roleRoutes);
+app.use('/api/permissions', permissionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api', orderStatusRoutes);
 app.use('/api/products', productRoutes);
-app.use('/api/users', userRoutes);
 app.use('/api/users/addresses', addressRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/user-permissions', userPermissionRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/setting-theme', settingThemeRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/attachments', attachmentRoutes);
 
 // Ruta de prueba
 app.get('/', (_req, res) => {

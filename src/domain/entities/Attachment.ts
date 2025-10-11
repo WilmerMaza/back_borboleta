@@ -1,5 +1,5 @@
 export interface Attachment {
-  id: number;
+  id?: number;
   collection_name: string;
   name: string;
   file_name: string;
@@ -8,8 +8,9 @@ export interface Attachment {
   conversions_disk: string;
   size: string;
   original_url: string;
+  asset_url: string;
+  file_path: string;
   created_by_id: number;
-  created_at?: string;
-  updated_at?: string;
-  deleted_at?: string;
+  created_at?: Date;
+  updated_at?: Date;
 }

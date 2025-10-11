@@ -1,181 +1,218 @@
-import { Request, Response } from 'express';
-import { injectable } from 'tsyringe';
-import { Logger } from '../../shared/utils/logger';
-import RoleModel from '../../infrastructure/database/models/RoleModel';
-import PermissionModel from '../../infrastructure/database/models/PermissionModel';
-import RolePermissionModel from '../../infrastructure/database/models/RolePermissionModel';
+import { Response } from 'express';
+import { injectable, inject } from 'tsyringe';
+import { IRoleRepository } from '../../domain/repositories/IRoleRepository';
+import { IPermissionRepository } from '../../domain/repositories/IPermissionRepository';
+import { RoleCreateRequest, RoleUpdateRequest, AssignPermissionsRequest } from '../../domain/entities/Role';
+import { AuthenticatedRequest } from '../../middleware/auth';
 
 @injectable()
 export class RoleController {
-  
-  // GET /api/roles - Obtener todos los roles con sus permisos
-  async getAllRoles(_req: Request, res: Response): Promise<void> {
+  constructor(
+    @inject('RoleRepository') private roleRepository: IRoleRepository,
+    @inject('PermissionRepository') private permissionRepository: IPermissionRepository
+  ) {}
+
+  // GET /api/roles - Obtener todos los roles
+  async getRoles(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      Logger.log('Obteniendo todos los roles...');
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const status = req.query.status === 'true' ? true : req.query.status === 'false' ? false : undefined;
 
-      const roles = await RoleModel.find()
-        .populate({
-          path: 'permissions',
-          model: 'Permission',
-          select: 'id name guard_name created_at updated_at'
-        })
-        .sort({ id: 1 });
+      const skip = (page - 1) * limit;
 
-      // Formatear respuesta con estructura pivot
-      const formattedRoles = roles.map((role: any) => {
-        const roleObj = role.toObject();
-        return {
-          id: roleObj.id,
-          name: roleObj.name,
-          guard_name: roleObj.guard_name || 'web',
-          system_reserve: roleObj.system_reserve?.toString() || '0',
-          created_at: roleObj.createdAt?.toISOString() || new Date().toISOString(),
-          updated_at: roleObj.updatedAt?.toISOString() || new Date().toISOString(),
-          permissions: (roleObj.permissions || []).map((permission: any) => ({
-            id: permission.id,
-            name: permission.name,
-            guard_name: permission.guard_name || 'web',
-            created_at: permission.createdAt?.toISOString() || new Date().toISOString(),
-            updated_at: permission.updatedAt?.toISOString() || new Date().toISOString(),
-            pivot: {
-              role_id: roleObj.id.toString(),
-              permission_id: permission.id.toString()
-            }
-          }))
-        };
+      const roles = await this.roleRepository.findAll({
+        skip,
+        limit,
+        status
       });
+
+      // Obtener permisos para cada rol
+      const rolesWithPermissions = await Promise.all(
+        roles.map(async (role) => {
+          const permissions = await this.permissionRepository.findAll({
+            limit: 1000 // Obtener todos los permisos
+          });
+          
+          const rolePermissions = permissions.filter(permission => 
+            role.permissions?.includes(permission.id!)
+          );
+
+          return {
+            ...role,
+            permissions: rolePermissions
+          };
+        })
+      );
+
+      const total = await this.roleRepository.count({ status });
 
       res.status(200).json({
         success: true,
-        data: formattedRoles
+        data: {
+          roles: rolesWithPermissions,
+          pagination: {
+            current_page: page,
+            per_page: limit,
+            total,
+            last_page: Math.ceil(total / limit)
+          }
+        }
       });
     } catch (error: any) {
-      Logger.error('Error al obtener roles:', error);
+      console.error('Error al obtener roles:', error);
       res.status(500).json({
         success: false,
-        message: 'Error interno del servidor'
+        message: 'Error interno del servidor',
+        error: error.message
       });
     }
   }
 
-  // POST /api/roles - Crear nuevo rol
-  async createRole(req: Request, res: Response): Promise<void> {
+  // GET /api/roles/:id - Obtener rol por ID
+  async getRoleById(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const { name, permissions } = req.body;
+      const { id } = req.params;
+      const roleId = parseInt(id);
 
-      Logger.log('Creando nuevo rol:', { name, permissions });
-
-      // Validaciones
-      if (!name) {
+      if (isNaN(roleId) || roleId <= 0) {
         res.status(400).json({
           success: false,
-          message: 'El nombre del rol es requerido'
+          message: 'ID de rol inválido'
         });
         return;
       }
 
-      // Verificar si el rol ya existe
-      const existingRole = await RoleModel.findOne({ name });
+      const role = await this.roleRepository.findById(roleId);
+
+      if (!role) {
+        res.status(404).json({
+          success: false,
+          message: 'Rol no encontrado'
+        });
+        return;
+      }
+
+      // Obtener permisos del rol
+      const permissions = await this.permissionRepository.findAll({
+        limit: 1000
+      });
+      
+      const rolePermissions = permissions.filter(permission => 
+        role.permissions?.includes(permission.id!)
+      );
+
+      res.status(200).json({
+        success: true,
+        data: {
+          role: {
+            ...role,
+            permissions: rolePermissions
+          }
+        }
+      });
+    } catch (error: any) {
+      console.error('Error al obtener rol:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor',
+        error: error.message
+      });
+    }
+  }
+
+  // POST /api/roles - Crear rol con permisos
+  async createRole(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const roleData: RoleCreateRequest = req.body;
+
+      // Validaciones básicas
+      if (!roleData.name) {
+        res.status(400).json({
+          success: false,
+          message: 'El nombre es requerido'
+        });
+        return;
+      }
+
+      // Generar slug automáticamente si no se proporciona
+      let slug = roleData.slug;
+      if (!slug) {
+        slug = roleData.name.toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '') // Remover caracteres especiales
+          .replace(/\s+/g, '-') // Reemplazar espacios con guiones
+          .replace(/-+/g, '-') // Reemplazar múltiples guiones con uno solo
+          .trim();
+      }
+
+      // Verificar si el slug ya existe
+      const existingRole = await this.roleRepository.findBySlug(slug);
       if (existingRole) {
         res.status(400).json({
           success: false,
-          message: 'Ya existe un rol con ese nombre'
+          message: 'El slug ya está en uso'
         });
         return;
       }
 
-      // Crear el rol
-      const newRole = new RoleModel({
-        name,
-        guard_name: 'web',
-        system_reserve: 0,
-        permissions: []
+      // Crear el rol sin permisos inicialmente
+      const role = await this.roleRepository.create({
+        name: roleData.name,
+        slug: slug, // Usar el slug generado o proporcionado
+        guard_name: roleData.guard_name || 'web',
+        system_reserve: roleData.system_reserve || 0,
+        description: roleData.description,
+        permissions: [], // Iniciar vacío
+        status: roleData.status ?? true
       });
 
-      const savedRole = await (newRole as any).save();
-
-      // Asignar permisos si se proporcionan
-      if (permissions && Array.isArray(permissions) && permissions.length > 0) {
-        // Verificar que los permisos existen
-        const existingPermissions = await PermissionModel.find({ 
-          id: { $in: permissions } 
-        });
-
-        if (existingPermissions.length !== permissions.length) {
-          res.status(400).json({
-            success: false,
-            message: 'Algunos permisos no existen'
-          });
-          return;
-        }
-
-        // Crear relaciones en la tabla pivot
-        const rolePermissions = permissions.map((permissionId: number) => ({
-          role_id: savedRole.id,
-          permission_id: permissionId
-        }));
-
-        await RolePermissionModel.insertMany(rolePermissions);
-
-        // Actualizar el rol con los permisos
-        (savedRole as any).permissions = existingPermissions.map((p: any) => p._id);
-        await (savedRole as any).save();
+      // Si se proporcionan permisos, asignarlos al rol usando el método del repositorio
+      // Aceptar tanto 'permission_ids' como 'permissions' por compatibilidad
+      const permissionIds = roleData.permission_ids || (req.body.permissions as number[]);
+      
+      if (permissionIds && permissionIds.length > 0) {
+        await this.roleRepository.assignPermissions(role.id!, permissionIds);
       }
 
-      // Obtener el rol completo con permisos para la respuesta
-      const roleWithPermissions = await RoleModel.findById((savedRole as any)._id)
-        .populate({
-          path: 'permissions',
-          model: 'Permission',
-          select: 'id name guard_name created_at updated_at'
-        });
-
-      const roleObj = (roleWithPermissions as any)?.toObject();
-      const formattedRole = {
-        id: roleObj?.id,
-        name: roleObj?.name,
-        guard_name: roleObj?.guard_name || 'web',
-        system_reserve: roleObj?.system_reserve?.toString() || '0',
-        created_at: roleObj?.createdAt?.toISOString() || new Date().toISOString(),
-        updated_at: roleObj?.updatedAt?.toISOString() || new Date().toISOString(),
-        permissions: (roleObj?.permissions || []).map((permission: any) => ({
-          id: permission.id,
-          name: permission.name,
-          guard_name: permission.guard_name || 'web',
-          created_at: permission.createdAt?.toISOString() || new Date().toISOString(),
-          updated_at: permission.updatedAt?.toISOString() || new Date().toISOString(),
-          pivot: {
-            role_id: roleObj?.id.toString(),
-            permission_id: permission.id.toString()
-          }
-        }))
-      };
+      // Obtener el rol completo para la respuesta
+      const roleWithPermissions = await this.roleRepository.findById(role.id!);
 
       res.status(201).json({
         success: true,
         message: 'Rol creado exitosamente',
-        data: formattedRole
+        data: {
+          role: roleWithPermissions
+        }
       });
     } catch (error: any) {
-      Logger.error('Error al crear rol:', error);
+      console.error('Error al crear rol:', error);
       res.status(500).json({
         success: false,
-        message: 'Error interno del servidor'
+        message: 'Error interno del servidor',
+        error: error.message
       });
     }
   }
 
   // PUT /api/roles/:id - Actualizar rol
-  async updateRole(req: Request, res: Response): Promise<void> {
+  async updateRole(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { name, permissions } = req.body;
+      const roleId = parseInt(id);
 
-      Logger.log('Actualizando rol:', { id, name, permissions });
+      if (isNaN(roleId) || roleId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'ID de rol inválido'
+        });
+        return;
+      }
 
-      // Buscar el rol
-      const role = await RoleModel.findOne({ id: parseInt(id) });
-      if (!role) {
+      const updateData: RoleUpdateRequest = req.body;
+
+      // Verificar que el rol existe
+      const existingRole = await this.roleRepository.findById(roleId);
+      if (!existingRole) {
         res.status(404).json({
           success: false,
           message: 'Rol no encontrado'
@@ -183,257 +220,188 @@ export class RoleController {
         return;
       }
 
-      // Verificar si es un rol del sistema
-      if ((role as any).system_reserve === 1) {
-        res.status(400).json({
-          success: false,
-          message: 'No se puede modificar un rol del sistema'
-        });
-        return;
-      }
-
-      // Actualizar nombre si se proporciona
-      if (name && name !== (role as any).name) {
-        const existingRole = await RoleModel.findOne({ name, id: { $ne: parseInt(id) } });
-        if (existingRole) {
+      // Verificar si el slug ya existe en otro rol
+      if (updateData.slug && updateData.slug !== existingRole.slug) {
+        const roleWithSlug = await this.roleRepository.findBySlug(updateData.slug);
+        if (roleWithSlug && roleWithSlug.id !== roleId) {
           res.status(400).json({
             success: false,
-            message: 'Ya existe un rol con ese nombre'
+            message: 'El slug ya está en uso por otro rol'
           });
           return;
         }
-        (role as any).name = name;
       }
 
-      // Actualizar permisos si se proporcionan
-      if (permissions && Array.isArray(permissions)) {
-        // Eliminar permisos existentes
-        await RolePermissionModel.deleteMany({ role_id: parseInt(id) });
-
-        // Agregar nuevos permisos
-        if (permissions.length > 0) {
-          // Verificar que los permisos existen
-          const existingPermissions = await PermissionModel.find({ 
-            id: { $in: permissions } 
-          });
-
-          if (existingPermissions.length !== permissions.length) {
-            res.status(400).json({
-              success: false,
-              message: 'Algunos permisos no existen'
-            });
-            return;
-          }
-
-          // Crear nuevas relaciones
-          const rolePermissions = permissions.map((permissionId: number) => ({
-            role_id: parseInt(id),
-            permission_id: permissionId
-          }));
-
-          await RolePermissionModel.insertMany(rolePermissions);
-
-          // Actualizar el rol con los nuevos permisos
-          (role as any).permissions = existingPermissions.map((p: any) => p._id);
-        } else {
-          (role as any).permissions = [];
-        }
-      }
-
-      await (role as any).save();
-
-      // Obtener el rol actualizado con permisos
-      const updatedRole = await RoleModel.findOne({ id: parseInt(id) })
-        .populate({
-          path: 'permissions',
-          model: 'Permission',
-          select: 'id name guard_name created_at updated_at'
-        });
-
-      const roleObj = (updatedRole as any)?.toObject();
-      const formattedRole = {
-        id: roleObj?.id,
-        name: roleObj?.name,
-        guard_name: roleObj?.guard_name || 'web',
-        system_reserve: roleObj?.system_reserve?.toString() || '0',
-        created_at: roleObj?.createdAt?.toISOString() || new Date().toISOString(),
-        updated_at: roleObj?.updatedAt?.toISOString() || new Date().toISOString(),
-        permissions: (roleObj?.permissions || []).map((permission: any) => ({
-          id: permission.id,
-          name: permission.name,
-          guard_name: permission.guard_name || 'web',
-          created_at: permission.createdAt?.toISOString() || new Date().toISOString(),
-          updated_at: permission.updatedAt?.toISOString() || new Date().toISOString(),
-          pivot: {
-            role_id: roleObj?.id.toString(),
-            permission_id: permission.id.toString()
-          }
-        }))
-      };
+      const updatedRole = await this.roleRepository.update(roleId, updateData);
 
       res.status(200).json({
         success: true,
         message: 'Rol actualizado exitosamente',
-        data: formattedRole
+        data: {
+          role: updatedRole
+        }
       });
     } catch (error: any) {
-      Logger.error('Error al actualizar rol:', error);
+      console.error('Error al actualizar rol:', error);
       res.status(500).json({
         success: false,
-        message: 'Error interno del servidor'
+        message: 'Error interno del servidor',
+        error: error.message
       });
     }
   }
 
   // DELETE /api/roles/:id - Eliminar rol
-  async deleteRole(req: Request, res: Response): Promise<void> {
+  async deleteRole(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
+      const roleId = parseInt(id);
 
-      Logger.log('Eliminando rol:', { id });
+      if (isNaN(roleId) || roleId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'ID de rol inválido'
+        });
+        return;
+      }
 
-      // Buscar el rol
-      const role = await RoleModel.findOne({ id: parseInt(id) });
-      if (!role) {
+      const deleted = await this.roleRepository.delete(roleId);
+
+      if (!deleted) {
         res.status(404).json({
           success: false,
           message: 'Rol no encontrado'
         });
         return;
       }
-
-      // Verificar si es un rol del sistema
-      if ((role as any).system_reserve === 1) {
-        res.status(400).json({
-          success: false,
-          message: 'No se puede eliminar un rol del sistema'
-        });
-        return;
-      }
-
-      // Verificar si hay usuarios usando este rol
-      const UserModel = require('../../infrastructure/database/models/UserModel').default;
-      const usersWithRole = await UserModel.find({ role_id: parseInt(id) });
-      
-      if (usersWithRole.length > 0) {
-        res.status(400).json({
-          success: false,
-          message: `No se puede eliminar el rol porque ${usersWithRole.length} usuario(s) lo están usando`
-        });
-        return;
-      }
-
-      // Eliminar relaciones de permisos
-      await RolePermissionModel.deleteMany({ role_id: parseInt(id) });
-
-      // Eliminar el rol
-      await RoleModel.findByIdAndDelete((role as any)._id);
 
       res.status(200).json({
         success: true,
         message: 'Rol eliminado exitosamente'
       });
     } catch (error: any) {
-      Logger.error('Error al eliminar rol:', error);
+      console.error('Error al eliminar rol:', error);
       res.status(500).json({
         success: false,
-        message: 'Error interno del servidor'
+        message: 'Error interno del servidor',
+        error: error.message
       });
     }
   }
 
-  // GET /api/modules - Obtener permisos organizados por módulos
-  async getModules(_req: Request, res: Response): Promise<void> {
+  // POST /api/roles/:id/permissions - Asignar permisos a un rol
+  async assignPermissions(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      Logger.log('Obteniendo módulos y permisos...');
+      const { id } = req.params;
+      const roleId = parseInt(id);
+      const { permission_ids }: AssignPermissionsRequest = req.body;
 
-      const permissions = await PermissionModel.find().sort({ name: 1 });
+      if (isNaN(roleId) || roleId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'ID de rol inválido'
+        });
+        return;
+      }
 
-      // Organizar permisos por módulos
-      const modules = [
-        {
-          id: 1,
-          name: 'Usuarios',
-          isChecked: false,
-          permissions: permissions
-            .filter((p: any) => p.name.startsWith('user.'))
-            .map((p: any) => ({
-              id: p.id,
-              name: p.name,
-              isChecked: false
-            }))
-        },
-        {
-          id: 2,
-          name: 'Roles',
-          isChecked: false,
-          permissions: permissions
-            .filter((p: any) => p.name.startsWith('role.'))
-            .map((p: any) => ({
-              id: p.id,
-              name: p.name,
-              isChecked: false
-            }))
-        },
-        {
-          id: 3,
-          name: 'Productos',
-          isChecked: false,
-          permissions: permissions
-            .filter((p: any) => p.name.startsWith('product.'))
-            .map((p: any) => ({
-              id: p.id,
-              name: p.name,
-              isChecked: false
-            }))
-        },
-        {
-          id: 4,
-          name: 'Categorías',
-          isChecked: false,
-          permissions: permissions
-            .filter((p: any) => p.name.startsWith('category.'))
-            .map((p: any) => ({
-              id: p.id,
-              name: p.name,
-              isChecked: false
-            }))
-        },
-        {
-          id: 5,
-          name: 'Órdenes',
-          isChecked: false,
-          permissions: permissions
-            .filter((p: any) => p.name.startsWith('order.'))
-            .map((p: any) => ({
-              id: p.id,
-              name: p.name,
-              isChecked: false
-            }))
-        },
-        {
-          id: 6,
-          name: 'Configuraciones',
-          isChecked: false,
-          permissions: permissions
-            .filter((p: any) => p.name.startsWith('setting.'))
-            .map((p: any) => ({
-              id: p.id,
-              name: p.name,
-              isChecked: false
-            }))
-        }
-      ].filter(module => module.permissions.length > 0); // Solo mostrar módulos con permisos
+      if (!permission_ids || !Array.isArray(permission_ids) || permission_ids.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Se requieren IDs de permisos válidos'
+        });
+        return;
+      }
+
+      // Verificar que el rol existe
+      const existingRole = await this.roleRepository.findById(roleId);
+      if (!existingRole) {
+        res.status(404).json({
+          success: false,
+          message: 'Rol no encontrado'
+        });
+        return;
+      }
+
+      // Verificar que todos los permisos existen
+      const permissions = await this.permissionRepository.findAll({ limit: 1000 });
+      const validPermissionIds = permissions.map(p => p.id!);
+      const invalidIds = permission_ids.filter(id => !validPermissionIds.includes(id));
+      
+      if (invalidIds.length > 0) {
+        res.status(400).json({
+          success: false,
+          message: `Los siguientes IDs de permisos no existen: ${invalidIds.join(', ')}`
+        });
+        return;
+      }
+
+      const updatedRole = await this.roleRepository.assignPermissions(roleId, permission_ids);
 
       res.status(200).json({
         success: true,
-        data: modules
+        message: 'Permisos asignados exitosamente',
+        data: {
+          role: updatedRole
+        }
       });
     } catch (error: any) {
-      Logger.error('Error al obtener módulos:', error);
+      console.error('Error al asignar permisos:', error);
       res.status(500).json({
         success: false,
-        message: 'Error interno del servidor'
+        message: 'Error interno del servidor',
+        error: error.message
+      });
+    }
+  }
+
+  // DELETE /api/roles/:id/permissions - Remover permisos de un rol
+  async removePermissions(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const roleId = parseInt(id);
+      const { permission_ids }: AssignPermissionsRequest = req.body;
+
+      if (isNaN(roleId) || roleId <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'ID de rol inválido'
+        });
+        return;
+      }
+
+      if (!permission_ids || !Array.isArray(permission_ids) || permission_ids.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Se requieren IDs de permisos válidos'
+        });
+        return;
+      }
+
+      // Verificar que el rol existe
+      const existingRole = await this.roleRepository.findById(roleId);
+      if (!existingRole) {
+        res.status(404).json({
+          success: false,
+          message: 'Rol no encontrado'
+        });
+        return;
+      }
+
+      const updatedRole = await this.roleRepository.removePermissions(roleId, permission_ids);
+
+      res.status(200).json({
+        success: true,
+        message: 'Permisos removidos exitosamente',
+        data: {
+          role: updatedRole
+        }
+      });
+    } catch (error: any) {
+      console.error('Error al remover permisos:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error interno del servidor',
+        error: error.message
       });
     }
   }

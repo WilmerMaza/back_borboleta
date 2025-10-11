@@ -30,6 +30,32 @@ export class SettingThemeRepository {
     return theme;
   }
 
+  async updateThemeBySlug(slug: string, name: string, content: any): Promise<ISettingTheme | null> {
+    console.log('🔍 Buscando tema con slug:', slug);
+    
+    const updatedTheme = await SettingThemeModel.findOneAndUpdate(
+      { slug: slug },
+      { 
+        name: name,
+        slug: slug,
+        content: content
+      },
+      { 
+        new: true,
+        runValidators: true,
+        upsert: false
+      }
+    );
+    
+    if (!updatedTheme) {
+      console.log('❌ Tema no encontrado con slug:', slug);
+      return null;
+    }
+    
+    console.log('✅ Tema actualizado exitosamente');
+    return updatedTheme;
+  }
+
   async deleteTheme(name: string): Promise<boolean> {
     const result = await SettingThemeModel.deleteOne({ name });
     return result.deletedCount > 0;

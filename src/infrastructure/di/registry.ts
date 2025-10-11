@@ -3,6 +3,7 @@ import { ProductRepository } from '../repositories/ProductRepository';
 import { CreateProductHandler } from '../../application/command-handlers/product/CreateProductHandler';
 import { CreateProductUseCase } from '../../application/use-cases/CreateProductUseCase';
 import { RegisterUserHandler } from '../../application/command-handlers/user/RegisterUserHandler';
+import { UnifiedLoginHandler } from '../../application/command-handlers/user/UnifiedLoginHandler';
 import { UserRepository } from '../repositories/UserRepository';
 import { GetProductsHandler } from '../../application/command-handlers/product/GetProductsHandler';
 import { GetProductsUseCase } from '../../application/use-cases/GetProductsUseCase';
@@ -36,6 +37,15 @@ import { DeleteAddressHandler } from '../../application/command-handlers/address
 import { GetUserAddressesHandler } from '../../application/query-handlers/address/GetUserAddressesHandler';
 import { AddressController } from '../../presentation/controllers/AddressController';
 import { AuthService } from '../../application/services/AuthService';
+import { OrderStatusRepository, OrderStatusActivityRepository } from '../repositories/OrderStatusRepository';
+import { OrderStatusController } from '../../presentation/controllers/OrderStatusController';
+import { PermissionRepository } from '../repositories/PermissionRepository';
+import { RoleRepository } from '../repositories/RoleRepository';
+import { PermissionController } from '../../presentation/controllers/PermissionController';
+import { RoleController } from '../../presentation/controllers/RoleController';
+import { UserPermissionController } from '../../presentation/controllers/UserPermissionController';
+import { AttachmentRepository } from '../repositories/AttachmentRepository';
+import { AttachmentService } from '../../application/services/AttachmentService';
 
 // Registro de repositorios
 container.register('ProductRepository', {
@@ -62,6 +72,27 @@ container.register('AddressRepository', {
   useClass: AddressRepository
 });
 
+container.register('OrderStatusRepository', {
+  useClass: OrderStatusRepository
+});
+
+container.register('OrderStatusActivityRepository', {
+  useClass: OrderStatusActivityRepository
+});
+
+
+container.register('PermissionRepository', {
+  useClass: PermissionRepository
+});
+
+container.register('RoleRepository', {
+  useClass: RoleRepository
+});
+
+container.register('IAttachmentRepository', {
+  useClass: AttachmentRepository
+});
+
 container.register('CartController', {
   useClass: CartController
 });
@@ -80,6 +111,27 @@ container.register('CheckoutController', {
 
 container.register('AuthService', {
   useClass: AuthService
+});
+
+container.register('OrderStatusController', {
+  useClass: OrderStatusController
+});
+
+
+container.register('PermissionController', {
+  useClass: PermissionController
+});
+
+container.register('RoleController', {
+  useClass: RoleController
+});
+
+container.register('UserPermissionController', {
+  useClass: UserPermissionController
+});
+
+container.register('AttachmentService', {
+  useClass: AttachmentService
 });
 
 // Registro de handlers
@@ -123,9 +175,14 @@ container.register('RegisterUserHandler', {
   useClass: RegisterUserHandler
 });
 
+container.register('UnifiedLoginHandler', {
+  useClass: UnifiedLoginHandler
+});
+
 container.register('LoginHandler', {
   useClass: LoginHandler
 });
+
 
 container.register('LoginPhoneHandler', {
   useClass: LoginPhoneHandler

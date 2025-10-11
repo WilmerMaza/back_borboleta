@@ -23,4 +23,5 @@ router.put('/:id', (req, res) => productController.updateProduct(req, res));
 // Eliminar producto
 router.delete('/:id', (req, res) => productController.deleteProduct(req, res));
 
+
 export default router; 

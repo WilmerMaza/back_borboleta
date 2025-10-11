@@ -33,7 +33,7 @@ export class SettingThemeService implements ISettingThemeService {
     const content = await this.fillProductsIds(theme.content);
     return {
       id: theme.id,
-      name: theme.name,
+      name: theme.name || '',
       slug: theme.slug,
       content
     };
@@ -47,7 +47,7 @@ export class SettingThemeService implements ISettingThemeService {
     const content = await this.fillProductsIds(theme.content);
     return {
       id: theme.id,
-      name: theme.name,
+      name: theme.name || '',
       slug: theme.slug,
       content
     };
@@ -77,6 +77,34 @@ export class SettingThemeService implements ISettingThemeService {
     return {
       id: theme.id,
       name: theme.name,
+      slug: theme.slug,
+      content: theme.content
+    };
+  }
+
+  // async updateTheme(data: { name: string; content: any }): Promise<ISettingThemeResponse> {
+  //   const { name, content } = data;
+  //   const theme = await this.settingThemeRepository.updateTheme(name, content);
+  //   if (!theme) {
+  //     throw new Error(`Tema '${name}' no encontrado`);
+  //   }
+  //   return {
+  //     id: theme.id,
+  //     name: theme.name || '',
+  //     slug: theme.slug,
+  //     content: theme.content
+  //   };
+  // }
+
+  async updateThemeBySlug(data: { slug: string; name: string; content: any }): Promise<ISettingThemeResponse | null> {
+    const { slug, name, content } = data;
+    const theme = await this.settingThemeRepository.updateThemeBySlug(slug, name, content);
+    if (!theme) {
+      return null;
+    }
+    return {
+      id: theme.id,
+      name: theme.name || name,
       slug: theme.slug,
       content: theme.content
     };
