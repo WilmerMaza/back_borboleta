@@ -57,11 +57,19 @@ export interface Wallet {
   updated_at?: string;
 }
 
+export interface AuthStateModel {
+  email: String;
+  number: { phone: number; country_code: number };
+  token: String | Number;
+  access_token: String | null;
+  permissions: [];
+}
+
 export interface IUser {
   id?: number;
   name: string;
   email: string;
-  phone: string;
+  phone: number;
   country_code: number;
   password: string;
   profile_image?: Attachment;
