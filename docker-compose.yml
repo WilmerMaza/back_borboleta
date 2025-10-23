@@ -1,4 +1,3 @@
-version: '3.9'
 services:
 
   borboleta:
@@ -17,5 +16,5 @@ services:
       FIREBASE_CLIENT_EMAIL: 'firebase-adminsdk-fbsvc@borboleta-f137e.iam.gserviceaccount.com'
       FIREBASE_CLIENT_ID: '112306729830678092178'
       FIREBASE_STORAGE_BUCKET: 'borboleta-f137e.firebasestorage.app'
-    restart: always
+    restart: unless-stopped
 
