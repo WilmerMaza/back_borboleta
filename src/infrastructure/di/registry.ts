@@ -46,6 +46,8 @@ import { RoleController } from '../../presentation/controllers/RoleController';
 import { UserPermissionController } from '../../presentation/controllers/UserPermissionController';
 import { AttachmentRepository } from '../repositories/AttachmentRepository';
 import { AttachmentService } from '../../application/services/AttachmentService';
+import { SettingThemeService } from '../../application/services/SettingThemeService';
+import { SettingThemeController } from '../../presentation/controllers/SettingThemeController';
 
 // Registro de repositorios
 container.register('ProductRepository', {
@@ -239,6 +241,15 @@ container.register('CreateCategoryUseCase', {
 
 container.register('GetCategoriesUseCase', {
   useClass: GetCategoriesUseCase
+});
+
+// Registro de SettingTheme
+container.register('ISettingThemeService', {
+  useClass: SettingThemeService
+});
+
+container.register('SettingThemeController', {
+  useClass: SettingThemeController
 });
 
 export { container };

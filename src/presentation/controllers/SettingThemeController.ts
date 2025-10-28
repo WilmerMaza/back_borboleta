@@ -1,13 +1,12 @@
 import { Request, Response } from 'express';
-import { SettingThemeService } from '../../application/services/SettingThemeService';
 import { ISettingThemeService } from '../../domain/interfaces/ISettingThemeService';
+import { injectable, inject } from 'tsyringe';
 
+@injectable()
 export class SettingThemeController {
-  private settingThemeService: ISettingThemeService;
-
-  constructor() {
-    this.settingThemeService = new SettingThemeService();
-  }
+  constructor(
+    @inject('ISettingThemeService') private settingThemeService: ISettingThemeService
+  ) {}
 
   // GET /api/setting-theme/:name
   async getThemeByName(req: Request, res: Response): Promise<void> {

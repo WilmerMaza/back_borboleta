@@ -311,7 +311,7 @@ export class ProductController {
       }
 
       console.log("📦 Actualizando producto con ID:", productId);
-      console.log("📦 Datos de actualización:", req.body);
+      console.log("📦 Datos de actualización:", JSON.stringify(req.body, null, 2));
 
       // Validar que el precio sea un número válido si se está actualizando
       if (req.body.price !== undefined && req.body.price !== null) {
@@ -326,44 +326,128 @@ export class ProductController {
 
       // Procesar product_galleries_id si existe
       if (Array.isArray(req.body.product_galleries_id)) {
+        console.log("🖼️ Procesando galería de imágenes:", req.body.product_galleries_id);
         const galleries = [];
         for (const attachmentId of req.body.product_galleries_id) {
-          const attachment = await this.attachmentRepository.findById(attachmentId);
-          if (attachment) {
-            galleries.push({
-              id: attachment.id,
-              name: attachment.name,
-              disk: attachment.disk,
-              file_name: attachment.file_name,
-              mime_type: attachment.mime_type,
-              asset_url: attachment.asset_url,
-              original_url: attachment.original_url
-            });
+          try {
+            console.log("🔍 Buscando attachment con ID:", attachmentId);
+            const attachment = await this.attachmentRepository.findById(attachmentId);
+            if (attachment) {
+              galleries.push({
+                id: attachment.id,
+                name: attachment.name,
+                disk: attachment.disk,
+                file_name: attachment.file_name,
+                mime_type: attachment.mime_type,
+                asset_url: attachment.asset_url,
+                original_url: attachment.original_url
+              });
+              console.log("✅ Imagen de galería agregada:", attachment.file_name);
+            } else {
+              console.warn("⚠️ No se encontró imagen de galería con ID:", attachmentId);
+            }
+          } catch (error) {
+            console.error("❌ Error procesando imagen de galería:", attachmentId, error);
           }
         }
-        req.body.product_galleries = galleries;
+        
+        if (galleries.length > 0) {
+          req.body.product_galleries = galleries;
+          console.log("✅ Galería procesada correctamente:", galleries.length, "imágenes");
+        } else {
+          console.warn("⚠️ No se pudieron procesar imágenes de galería");
+        }
+        
         // Eliminar el campo temporal
         delete req.body.product_galleries_id;
       }
 
       // Procesar product_thumbnail_id si existe
       if (req.body.product_thumbnail_id) {
-        const thumbnail = await this.attachmentRepository.findById(req.body.product_thumbnail_id);
-        if (thumbnail) {
-          req.body.product_thumbnail = {
-            id: thumbnail.id,
-            name: thumbnail.name,
-            disk: thumbnail.disk,
-            file_name: thumbnail.file_name,
-            mime_type: thumbnail.mime_type,
-            asset_url: thumbnail.asset_url,
-            original_url: thumbnail.original_url
-          };
+        try {
+          console.log("🖼️ Procesando thumbnail ID:", req.body.product_thumbnail_id);
+          const thumbnail = await this.attachmentRepository.findById(req.body.product_thumbnail_id);
+          if (thumbnail) {
+            req.body.product_thumbnail = {
+              id: thumbnail.id,
+              name: thumbnail.name,
+              disk: thumbnail.disk,
+              file_name: thumbnail.file_name,
+              mime_type: thumbnail.mime_type,
+              asset_url: thumbnail.asset_url,
+              original_url: thumbnail.original_url
+            };
+            console.log("✅ Thumbnail procesado correctamente");
+          } else {
+            console.warn("⚠️ No se encontró thumbnail con ID:", req.body.product_thumbnail_id);
+          }
+        } catch (error) {
+          console.error("❌ Error procesando thumbnail:", error);
         }
         // Eliminar el campo temporal
         delete req.body.product_thumbnail_id;
       }
 
+      // Validar y procesar categorías si se están enviando
+      if (req.body.categories && Array.isArray(req.body.categories)) {
+        console.log("📁 Validando categorías:", req.body.categories);
+        const validCategories = [];
+        
+        for (const categoryId of req.body.categories) {
+          try {
+            let categoryIdToUse = categoryId;
+            
+            // Si es un string, intentar convertirlo a número
+            if (typeof categoryId === 'string') {
+              // Remover espacios y caracteres extraños como [ ] "
+              const cleanId = categoryId.replace(/[\[\]"\s]/g, '');
+              const numId = parseInt(cleanId);
+              if (!isNaN(numId)) {
+                categoryIdToUse = numId;
+                console.log("✅ Categoría convertida de string a número:", categoryId, "->", categoryIdToUse);
+              } else {
+                console.warn("⚠️ No se pudo convertir categoría a número:", categoryId);
+                continue;
+              }
+            } else if (typeof categoryId === 'number') {
+              categoryIdToUse = categoryId;
+              console.log("✅ Categoría numérica:", categoryIdToUse);
+            } else {
+              console.warn("⚠️ Tipo de categoría no válido:", typeof categoryId, categoryId);
+              continue;
+            }
+            
+            // Buscar la categoría por su ID numérico para obtener el ObjectId de MongoDB
+            try {
+              const category = await this.categoryRepository.findByAutoIncrementId(categoryIdToUse);
+              if (category) {
+                // Usar el _id de MongoDB para la relación
+                const mongoId = (category as any)._id || category.id;
+                if (mongoId) {
+                  validCategories.push(mongoId);
+                  console.log("✅ Categoría encontrada:", category.name, "ID numérico:", categoryIdToUse, "MongoID:", mongoId);
+                } else {
+                  console.warn("⚠️ Categoría sin _id válido:", categoryIdToUse);
+                }
+              } else {
+                console.warn("⚠️ Categoría no encontrada con ID numérico:", categoryIdToUse);
+              }
+            } catch (error) {
+              console.error("❌ Error buscando categoría:", categoryIdToUse, error);
+            }
+          } catch (error) {
+            console.error("❌ Error validando categoría:", categoryId, error);
+          }
+        }
+        
+        // Actualizar el array de categorías con los ObjectIds válidos
+        req.body.categories = validCategories;
+        console.log("📁 Categorías procesadas:", validCategories);
+      }
+
+      console.log("🚀 Enviando comando de actualización...");
+      console.log("📦 Datos finales a actualizar:", JSON.stringify(req.body, null, 2));
+      
       const command = new UpdateProductCommand(productId, req.body);
       const product = await this.updateProductHandler.handle(command);
 
@@ -374,6 +458,7 @@ export class ProductController {
       });
     } catch (error: any) {
       console.error("❌ Error al actualizar producto:", error.message);
+      console.error("❌ Error completo:", error);
 
       // Manejar errores de validación de Mongoose
       if (error instanceof mongoose.Error.ValidationError) {
