@@ -1,5 +1,6 @@
 import { injectable, inject } from 'tsyringe';
 import { IUserRepository } from '../../../domain/repositories/IUserRepository';
+
 import { AuthService } from '../../services/AuthService';
 import { RegisterUserCommand } from '../../commands/user/RegisterUserCommand';
 import { Logger } from '../../../shared/utils/logger';
@@ -34,7 +35,7 @@ export class RegisterUserHandler {
         password: hashedPassword,
         phone: userData.phone,
         country_code: userData.country_code,
-        role_id: 2, // ID del rol "consumer" (cliente)
+        role_id: 4, // ID del rol "consumer" (cliente)
         status: true,
         email_verified_at: undefined,
         is_approved: false,
@@ -51,11 +52,12 @@ export class RegisterUserHandler {
         role_id: user.role_id
       });
 
-      // Preparar respuesta del usuario (sin contraseña)
-      const { password, ...userWithoutPassword } = user;
+      // Asegurarse de que el password nunca se devuelva (ya debería estar excluido por el modelo)
+      const userResponse: any = { ...user };
+      delete userResponse.password;
 
       return {
-        ...userWithoutPassword,
+        ...userResponse,
         role_name: 'consumer',
         role_slug: 'consumer'
       };

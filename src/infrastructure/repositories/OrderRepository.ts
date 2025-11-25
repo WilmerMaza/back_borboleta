@@ -42,6 +42,12 @@ export class OrderRepository implements IOrderRepository {
 
   async findById(id: string): Promise<IOrder | null> {
     try {
+      // Validar que el ID sea un ObjectId válido de MongoDB
+      if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
+        // Si no es un ObjectId válido, intentar buscar por order_number
+        return await this.findByOrderNumber(id);
+      }
+
       const order = await OrderModel.findById(id)
         .populate('user_id', 'name email')
         .populate('items.product_id', 'name price sale_price');
@@ -61,8 +67,14 @@ export class OrderRepository implements IOrderRepository {
         created_at: createdAt ? createdAt.toISOString() : new Date().toISOString(),
         updated_at: updatedAt ? updatedAt.toISOString() : new Date().toISOString()
       };
-    } catch (error) {
-      throw new Error('Error al obtener la orden de la base de datos');
+    } catch (error: any) {
+      // Si es un error de formato de ID, simplemente devolver null
+      if (error.name === 'CastError' || error.message?.includes('Cast to ObjectId')) {
+        return null;
+      }
+      console.error('❌ Error en OrderRepository.findById:', error);
+      // Devolver null en lugar de lanzar error para permitir búsquedas alternativas
+      return null;
     }
   }
 

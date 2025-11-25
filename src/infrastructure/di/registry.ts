@@ -48,6 +48,20 @@ import { AttachmentRepository } from '../repositories/AttachmentRepository';
 import { AttachmentService } from '../../application/services/AttachmentService';
 import { SettingThemeService } from '../../application/services/SettingThemeService';
 import { SettingThemeController } from '../../presentation/controllers/SettingThemeController';
+import { AttributeRepository } from '../repositories/AttributeRepository';
+import { AttributeValueRepository } from '../repositories/AttributeValueRepository';
+import { CreateAttributeHandler } from '../../application/command-handlers/attribute/CreateAttributeHandler';
+import { UpdateAttributeHandler } from '../../application/command-handlers/attribute/UpdateAttributeHandler';
+import { DeleteAttributeHandler } from '../../application/command-handlers/attribute/DeleteAttributeHandler';
+import { UpdateAttributeStatusHandler } from '../../application/command-handlers/attribute/UpdateAttributeStatusHandler';
+import { DeleteMultipleAttributesHandler } from '../../application/command-handlers/attribute/DeleteMultipleAttributesHandler';
+import { GetAllAttributesHandler } from '../../application/query-handlers/attribute/GetAllAttributesHandler';
+import { GetAttributeByIdHandler } from '../../application/query-handlers/attribute/GetAttributeByIdHandler';
+import { GetAttributeValuesHandler } from '../../application/query-handlers/attribute/GetAttributeValuesHandler';
+import { AttributeController } from '../../presentation/controllers/AttributeController';
+import { AttributeValueController } from '../../presentation/controllers/AttributeValueController';
+import { WompiService } from '../../application/services/WompiService';
+import { WompiController } from '../../presentation/controllers/WompiController';
 
 // Registro de repositorios
 container.register('ProductRepository', {
@@ -93,6 +107,18 @@ container.register('RoleRepository', {
 
 container.register('IAttachmentRepository', {
   useClass: AttachmentRepository
+});
+
+container.register('AttributeRepository', {
+  useClass: AttributeRepository
+});
+
+container.register('AttributeValueRepository', {
+  useClass: AttributeValueRepository
+});
+
+container.register('IAttributeValueRepository', {
+  useClass: AttributeValueRepository
 });
 
 container.register('CartController', {
@@ -226,6 +252,38 @@ container.register('GetUserAddressesHandler', {
   useClass: GetUserAddressesHandler
 });
 
+container.register('CreateAttributeHandler', {
+  useClass: CreateAttributeHandler
+});
+
+container.register('UpdateAttributeHandler', {
+  useClass: UpdateAttributeHandler
+});
+
+container.register('DeleteAttributeHandler', {
+  useClass: DeleteAttributeHandler
+});
+
+container.register('UpdateAttributeStatusHandler', {
+  useClass: UpdateAttributeStatusHandler
+});
+
+container.register('DeleteMultipleAttributesHandler', {
+  useClass: DeleteMultipleAttributesHandler
+});
+
+container.register('GetAllAttributesHandler', {
+  useClass: GetAllAttributesHandler
+});
+
+container.register('GetAttributeByIdHandler', {
+  useClass: GetAttributeByIdHandler
+});
+
+container.register('GetAttributeValuesHandler', {
+  useClass: GetAttributeValuesHandler
+});
+
 // Registro de casos de uso
 container.register('CreateProductUseCase', {
   useClass: CreateProductUseCase
@@ -250,6 +308,24 @@ container.register('ISettingThemeService', {
 
 container.register('SettingThemeController', {
   useClass: SettingThemeController
+});
+
+container.register('AttributeController', {
+  useClass: AttributeController
+});
+
+container.register('AttributeValueController', {
+  useClass: AttributeValueController
+});
+
+container.register('WompiService', {
+  useClass: WompiService
+});
+
+// Instanciar WompiService para que se ejecute su constructor y muestre la configuración
+
+container.register('WompiController', {
+  useClass: WompiController
 });
 
 export { container };

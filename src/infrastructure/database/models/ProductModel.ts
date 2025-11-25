@@ -80,7 +80,7 @@ const productSchema = new Schema<IProductModel>(
 
     // Asociaciones (guardamos solo los IDs, los detalles se pueden poblar)
     wholesales: [{ type: Schema.Types.Mixed }],
-    variations: [{ type: Schema.Types.ObjectId, ref: "Variation" }],
+    variations: [{ type: Schema.Types.Mixed }],
     product_thumbnail: { 
       type: {
         id: { type: Number },

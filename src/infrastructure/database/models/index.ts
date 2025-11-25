@@ -5,6 +5,8 @@ import OrderModel from './OrderModel';
 import CartModel from './CartModel';
 import RoleModel from './RoleModel';
 import { SettingThemeModel } from './SettingThemeModel';
+import AttributeModel from './AttributeModel';
+import AttributeValueModel from './AttributeValueModel';
 
 export {
     ProductModel,
@@ -13,5 +15,7 @@ export {
     OrderModel,
     CartModel,
     RoleModel,
-    SettingThemeModel
+    SettingThemeModel,
+    AttributeModel,
+    AttributeValueModel
 }; 

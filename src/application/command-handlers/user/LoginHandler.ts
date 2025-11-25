@@ -51,7 +51,10 @@ export class LoginHandler {
       const token = this.authService.generateToken(user.id!, user.email);
 
       // Preparar respuesta del usuario (sin contraseña)
-      const { password, ...userWithoutPassword } = user;
+      // El password ya debería estar excluido por el transform del modelo,
+      // pero lo excluimos manualmente por seguridad
+      const userWithoutPassword: any = { ...user };
+      delete userWithoutPassword.password;
 
       Logger.log('✅ Usuario normal autenticado exitosamente:', {
         email: userWithoutPassword.email,

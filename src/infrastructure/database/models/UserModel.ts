@@ -62,7 +62,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   phone: { type: String, required: true },
   country_code: { type: Number, required: true },
-  password: { type: String, required: true },
+  password: { type: String, required: true, select: false }, // Excluir password por defecto en queries
   profile_image: { type: attachmentSchema },
   profile_image_id: { type: Number },
   status: { type: Boolean, default: true },

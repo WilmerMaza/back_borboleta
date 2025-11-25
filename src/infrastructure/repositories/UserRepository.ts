@@ -11,7 +11,12 @@ export class UserRepository implements IUserRepository {
     try {
       const newUser = new UserModel(user);
       const savedUser = await newUser.save();
-      return savedUser.toObject();
+      const userObj = savedUser.toObject();
+      
+      // Asegurarse de que el password nunca se devuelva
+      delete (userObj as any).password;
+      
+      return userObj;
     } catch (error) {
       Logger.error('Error al crear usuario en la base de datos:', error);
       throw error;
@@ -21,7 +26,13 @@ export class UserRepository implements IUserRepository {
   async findById(id: number): Promise<IUser | null> {
     try {
       const user = await UserModel.findOne({ id: id });
-      return user ? user.toObject() : null;
+      if (!user) return null;
+      
+      const userObj = user.toObject();
+      // Asegurarse de que el password nunca se devuelva
+      delete (userObj as any).password;
+      
+      return userObj;
     } catch (error) {
       Logger.error(`Error al buscar usuario con ID ${id}:`, error);
       throw error;
@@ -30,8 +41,15 @@ export class UserRepository implements IUserRepository {
 
   async findByEmail(email: string): Promise<IUser | null> {
     try {
-      const user = await UserModel.findOne({ email });
-      return user ? user.toObject() : null;
+      // Incluir password explícitamente solo cuando sea necesario para autenticación
+      const user = await UserModel.findOne({ email }).select('+password');
+      if (!user) return null;
+      
+      // Obtener el objeto sin aplicar el transform (para mantener el password para autenticación)
+      // El password se excluirá manualmente en los handlers que devuelven datos al cliente
+      const userObj = user.toObject({ transform: false });
+      
+      return userObj;
     } catch (error) {
       Logger.error(`Error al buscar usuario con email ${email}:`, error);
       throw error;
@@ -40,8 +58,15 @@ export class UserRepository implements IUserRepository {
 
   async findByPhone(phone: string, countryCode: number): Promise<IUser | null> {
     try {
-      const user = await UserModel.findOne({ phone, country_code: countryCode });
-      return user ? user.toObject() : null;
+      // Incluir password para autenticación
+      const user = await UserModel.findOne({ phone, country_code: countryCode }).select('+password');
+      if (!user) return null;
+      
+      // Obtener el objeto sin aplicar el transform (para mantener el password para autenticación)
+      // El password se excluirá manualmente en los handlers que devuelven datos al cliente
+      const userObj = user.toObject({ transform: false });
+      
+      return userObj;
     } catch (error) {
       Logger.error(`Error al buscar usuario con teléfono ${phone}:`, error);
       throw error;
@@ -84,7 +109,12 @@ export class UserRepository implements IUserRepository {
       }
       
       const users = await query.exec();
-      return users.map(user => user.toObject());
+      return users.map(user => {
+        const userObj = user.toObject();
+        // Asegurarse de que el password nunca se devuelva
+        delete (userObj as any).password;
+        return userObj;
+      });
     } catch (error) {
       Logger.error('Error al obtener todos los usuarios:', error);
       throw error;
@@ -93,12 +123,26 @@ export class UserRepository implements IUserRepository {
 
   async update(id: number, userData: Partial<IUser>): Promise<IUser | null> {
     try {
+      // Si se está actualizando la contraseña, hashearla antes de guardar
+      if (userData.password) {
+        const bcrypt = require('bcryptjs');
+        const { authConfig } = require('../../config/auth');
+        userData.password = await bcrypt.hash(userData.password, authConfig.BCRYPT_SALT_ROUNDS);
+      }
+      
       const updatedUser = await UserModel.findOneAndUpdate(
         { id: id },
         { $set: userData },
         { new: true }
       );
-      return updatedUser ? updatedUser.toObject() : null;
+      
+      if (!updatedUser) return null;
+      
+      const userObj = updatedUser.toObject();
+      // Asegurarse de que el password nunca se devuelva
+      delete (userObj as any).password;
+      
+      return userObj;
     } catch (error) {
       Logger.error(`Error al actualizar usuario con ID ${id}:`, error);
       throw error;
@@ -116,7 +160,14 @@ export class UserRepository implements IUserRepository {
         { $set: { password: hashedPassword } },
         { new: true }
       );
-      return updatedUser ? updatedUser.toObject() : null;
+      
+      if (!updatedUser) return null;
+      
+      const userObj = updatedUser.toObject();
+      // Asegurarse de que el password nunca se devuelva
+      delete (userObj as any).password;
+      
+      return userObj;
     } catch (error) {
       Logger.error(`Error al actualizar contraseña para email ${email}:`, error);
       throw error;
