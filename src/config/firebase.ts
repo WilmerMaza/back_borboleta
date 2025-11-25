@@ -1,9 +1,6 @@
 import { initializeApp, cert } from "firebase-admin/app";
 import { getStorage } from "firebase-admin/storage";
-import dotenv from "dotenv";
-import { randomUUID } from "crypto";
-
-dotenv.config();
+import { v4 as uuid } from "uuid";
 
 const serviceAccount = {
   projectId: process.env.FIREBASE_PROJECT_ID,

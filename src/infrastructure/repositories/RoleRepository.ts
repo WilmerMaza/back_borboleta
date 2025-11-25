@@ -20,18 +20,58 @@ export class RoleRepository implements IRoleRepository {
   async findById(id: number): Promise<IRole | null> {
     try {
       const role = await RoleModel.findOne({ id });
-      return role ? (role as any).toObject() : null;
-    } catch (error) {
+      
+      if (!role) {
+        Logger.error(`⚠️ Rol no encontrado con ID: ${id}`);
+        // Listar los roles disponibles para debugging
+        const allRoles = await RoleModel.find({}, 'id name slug status').limit(10);
+        Logger.log(`📋 Roles disponibles en la base de datos:`, 
+          allRoles.map(r => ({ id: (r as any).id, name: (r as any).name, slug: (r as any).slug, status: (r as any).status }))
+        );
+        return null;
+      }
+      
+      const roleObj = (role as any).toObject();
+      
+      // Verificar si el rol está activo
+      if (roleObj.status === false) {
+        Logger.error(`⚠️ Rol con ID ${id} existe pero está deshabilitado (status: false)`);
+        // Aún así devolvemos el rol para que el sistema pueda decidir qué hacer
+      }
+      
+      return roleObj;
+    } catch (error: any) {
       Logger.error(`Error al buscar rol con ID ${id}:`, error);
       throw error;
     }
   }
 
-  async findBySlug(slug: string): Promise<IRole | null> {
+  async findBySlug(slug: string, includeInactive: boolean = false): Promise<IRole | null> {
     try {
-      const role = await RoleModel.findOne({ slug, status: true });
-      return role ? (role as any).toObject() : null;
-    } catch (error) {
+      const query: any = { slug };
+      
+      // Si no se incluyen roles inactivos, filtrar por status: true
+      if (!includeInactive) {
+        query.status = true;
+      }
+      
+      const role = await RoleModel.findOne(query);
+      
+      if (!role) {
+        Logger.log(`⚠️ Rol no encontrado con slug: ${slug}`);
+        return null;
+      }
+      
+      const roleObj = (role as any).toObject();
+      
+      // Si el rol está inactivo y no se incluyen inactivos, devolver null
+      if (!includeInactive && roleObj.status === false) {
+        Logger.log(`⚠️ Rol con slug ${slug} existe pero está inactivo`);
+        return null;
+      }
+      
+      return roleObj;
+    } catch (error: any) {
       Logger.error(`Error al buscar rol con slug ${slug}:`, error);
       throw error;
     }

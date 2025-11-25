@@ -1,6 +1,9 @@
 import 'reflect-metadata';  // Esta importación debe ser la primera
-import express from 'express';
 import dotenv from 'dotenv';
+
+dotenv.config(); // esto carga el .env de la raíz (DEBE ser antes de cualquier importación que use process.env)
+
+import express from 'express';
 import cors from 'cors';
 import './infrastructure/di/registry';  // Importar el registro de dependencias
 import './infrastructure/database/models';  // Importar todos los modelos
@@ -21,10 +24,11 @@ import adminRoutes from './presentation/routes/admin.routes';
 import orderStatusRoutes from './presentation/routes/order-status.routes';
 import uploadRoutes from './presentation/routes/upload.routes';
 import attachmentRoutes from './presentation/routes/attachment.routes';
+import attributeRoutes from './presentation/routes/attribute.routes';
+import attributeValueRoutes from './presentation/routes/attribute-value.routes';
+import wompiRoutes from './presentation/routes/wompi.routes';
 import userRoutes from './routes/userRoutes';
 import connectDB from './infrastructure/database/config/database';
-
-dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -62,6 +66,9 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/setting-theme', settingThemeRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/attachments', attachmentRoutes);
+app.use('/api/attributes', attributeRoutes);
+app.use('/api/attribute-values', attributeValueRoutes);
+app.use('/api/wompi', wompiRoutes);
 
 // Ruta de prueba
 app.get('/', (_req, res) => {

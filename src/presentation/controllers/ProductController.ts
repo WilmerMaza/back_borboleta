@@ -13,6 +13,8 @@ import { DeleteProductHandler } from "../../application/command-handlers/product
 import mongoose from "mongoose";
 import { CategoryRepository } from "../../infrastructure/repositories/CategoryRepository";
 import { IAttachmentRepository } from "../../domain/repositories/IAttachmentRepository";
+import { IAttributeRepository } from "../../domain/repositories/IAttributeRepository";
+import AttributeModel from "../../infrastructure/database/models/AttributeModel";
 
 
 @injectable()
@@ -33,7 +35,9 @@ export class ProductController {
     @inject("CategoryRepository")
     private categoryRepository: CategoryRepository,
     @inject("IAttachmentRepository")
-    private attachmentRepository: IAttachmentRepository
+    private attachmentRepository: IAttachmentRepository,
+    @inject("AttributeRepository")
+    private attributeRepository: IAttributeRepository
   ) {}
 
   async createProduct(req: Request, res: Response): Promise<void> {
@@ -76,6 +80,32 @@ export class ProductController {
         productData.categories = validatedCategories;
       }
 
+      // Validar y transformar atributos si existen
+      if (productData.attributes_ids && Array.isArray(productData.attributes_ids)) {
+        const validatedAttributes: mongoose.Types.ObjectId[] = [];
+
+        for (const id of productData.attributes_ids) {
+          const attribute = await this.attributeRepository.findById(id);
+          if (!attribute) {
+            throw new Error(`El atributo con ID ${id} no existe`);
+          }
+
+          // Buscar el documento de Attribute en MongoDB para obtener el _id
+          const attributeDoc = await AttributeModel.findOne({ id: id });
+          
+          if (attributeDoc) {
+            // Convertir el _id de MongoDB a ObjectId para la referencia
+            validatedAttributes.push(new mongoose.Types.ObjectId(attributeDoc._id));
+          } else {
+            throw new Error(`No se encontró el documento de Attribute con ID ${id}`);
+          }
+        }
+
+        productData.attributes = validatedAttributes;
+        // Eliminar el campo temporal
+        delete productData.attributes_ids;
+      }
+
       // Procesar product_galleries_id
       if (Array.isArray(productData.product_galleries_id)) {
         const galleries = [];
@@ -114,6 +144,85 @@ export class ProductController {
         }
         // Eliminar el campo temporal
         delete productData.product_thumbnail_id;
+      }
+
+      // Procesar variations si existen
+      if (productData.variations !== undefined) {
+        try {
+          // Si variations viene como string, parsearlo
+          let variationsData = productData.variations;
+          if (typeof variationsData === 'string') {
+            variationsData = JSON.parse(variationsData);
+          }
+
+          // Si es un array, procesar cada variación
+          if (Array.isArray(variationsData)) {
+            const processedVariations = [];
+
+            for (const variation of variationsData) {
+              const processedVariation: any = {
+                ...variation,
+              };
+
+              // Procesar attribute_values si existen
+              if (variation.attribute_values && Array.isArray(variation.attribute_values)) {
+                // Los attribute_values ya vienen como IDs numéricos, mantenerlos así
+                processedVariation.attribute_values = variation.attribute_values;
+              }
+
+              // Procesar variation_image_id si existe
+              if (variation.variation_image_id) {
+                const variationImage = await this.attachmentRepository.findById(variation.variation_image_id);
+                if (variationImage) {
+                  processedVariation.variation_image = {
+                    id: variationImage.id,
+                    name: variationImage.name,
+                    disk: variationImage.disk,
+                    file_name: variationImage.file_name,
+                    mime_type: variationImage.mime_type,
+                    asset_url: variationImage.asset_url,
+                    original_url: variationImage.original_url
+                  };
+                }
+                // Eliminar el campo temporal
+                delete processedVariation.variation_image_id;
+              }
+
+              // Procesar variation_galleries_id si existe
+              if (variation.variation_galleries_id && Array.isArray(variation.variation_galleries_id)) {
+                const galleries = [];
+                for (const id of variation.variation_galleries_id) {
+                  const attachment = await this.attachmentRepository.findById(id);
+                  if (attachment) {
+                    galleries.push({
+                      id: attachment.id,
+                      name: attachment.name,
+                      disk: attachment.disk,
+                      file_name: attachment.file_name,
+                      mime_type: attachment.mime_type,
+                      asset_url: attachment.asset_url,
+                      original_url: attachment.original_url
+                    });
+                  }
+                }
+                processedVariation.variation_galleries = galleries;
+                // Eliminar el campo temporal
+                delete processedVariation.variation_galleries_id;
+              }
+
+              processedVariations.push(processedVariation);
+            }
+
+            productData.variations = processedVariations;
+          } else {
+            // Si no es un array válido, establecer como array vacío
+            productData.variations = [];
+          }
+        } catch (error) {
+          console.error("❌ Error procesando variations:", error);
+          // En caso de error, establecer como array vacío para no romper la creación
+          productData.variations = [];
+        }
       }
 
       // Ejecutar el comando
