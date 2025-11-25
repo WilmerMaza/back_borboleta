@@ -1,4 +1,3 @@
-version: '3.9'
 services:
 
   borboleta:
@@ -8,8 +7,14 @@ services:
     ports:
       - '3001:3001'
     environment:
-      MONGODB_URI: 'mongodb+srv://alejandraalfaro:EpkGssvva00tUGxP@borboleta.egefkn1.mongodb.net/?retryWrites=true&w=majority&appName=Borboleta'
       PORT: 3001
       JWT_SECRET: 'fe20afff32bbc9e61726af9f2b35cddb98b926bdebc5998e0903f2013ce66538'
-    restart: always
+      MONGODB_URI: 'mongodb+srv://alejandraalfaro:EpkGssvva00tUGxP@borboleta.egefkn1.mongodb.net/?retryWrites=true&w=majority&appName=Borboleta' 
+      FIREBASE_PROJECT_ID: 'borboleta-f137e'
+      FIREBASE_PRIVATE_KEY_ID: '3284b4f5cedeaddf88d1ec1fe408fb044b58a8d9'
+      FIREBASE_PRIVATE_KEY: '-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCu1Q+5dwrWNtQb\n84YYO1cKMyRciC8JTRxuwvi5Ihu09reVreoVnrCDoqx7aHwpWjBmtClXdOLvLTWq\npixzlHMSEKJggcUwbRlCNn/rFbxCwNsg0GtBuMKJaTv2IlToq92R6JfANft2IC4B\npBSXTZO7K4McIEpckKoE5npNGayfhWsieUAuPZV3ikJLNtBbLv3mJXbVk5oPhm8o\npm0h7jlXOZh0Y/S3kyWfIWAGl31Fk8ffDXIy/R78w7SRfRkjPrrjeuZV1EK6Xukv\ncjKERJcJCmPTw2F+yGSNZFq4gOnohYCcQkI+UvgMCcbYXiOgzkqPh1QM/8y5cs1K\nqqsgp1axAgMBAAECggEAHGN+XSg7pehbQs/6kIlk1cQo0wROAZ2i0J1vfmhPxW+2\nWbisD6dSlDK1p92hzk6AbieHparWL+4luQ2ons/rwMgwsFOswvNELGCQdDTK+q/k\nJQzoDaZETcRntyIrVWiViYa8yro5QxzF5lWlU6Lbf9ijPnhD0DSxVtWx5ZPAra+F\nrkSLOOJ3eW27QIKKtYHUhc5ToZusnkwBqFnqVGYETlzN9HEaIAUQQVSQ/F/9wvAM\nGtD2BKCiUbIR2Yj3PloYj0gwbtExgsvSzndinqmQtpGkaU5MOBMo4RHfa39bpXE2\ntaQQegt2LdfVMG9XFFNiK9Tny9S35NP2fIXFWN5uLQKBgQDpjmRuQGBf9p3SE0Fg\nQMymntjRmzHla8IAdSXl1EGFkRVzcxqY/Q1IzqgMnQISuKvxiIP0jkb/DzEgIhtU\nt6r25eFiPSHBBVgjGAID3ZMpoJQIgkhMgRQEC/4/+FdyFAmQ32ofpzjZTFiRfucL\n7SS07T/KXQjYcIGY0D/sUdQTcwKBgQC/ogdUItPj+qLLHSQNzKtHd1f3KFsoJrDw\nmNeCD0GJxTt+48i3F4EZzciuI3OrevTFQuOyvNs6nVnp9wxdSnere+8NIzPwKpDg\nAFbnqNyZe/B/3HYlVReifJHJgNnWh1zcKMZQhO7US4QBdBMqgYKBRutjBOEcEa4c\nuQ248mLMSwKBgQDDSt2PkyUDGSQ+VPuFkKmPaaPDIRJH1CMUXuChnSpslTRqpQTI\niFBjYOoEIgVpwiGEhbJQ++dBv2JEjEBuRmYerXoYuyVOUTmxnpGQyeYUGMGvm8D4\nt7YU7DJdKztzmG2nRilm7l0K1lv4zTRFNLZM01VT0RdkZC75qKjK4mGDIQKBgDsg\nhjxahqBYC/S5qA8t8EcbtqOG6yFnVr7VmeECTglxNps/MwXzFZ1dlibMv3rQdEeN\nDO5wQQBD3qNG26TJPkVF9wtJqlPW/l5vHGFcA7zDtf/tiPKZ37H914mh3RTJLUis\nuAvOCFaueitsoiFCVn8G38fskHx1pBAutOI0v3EjAoGBAKHS6zYufloX1itH/CSO\nixbszZ1KozRKlZ6dJebvxnGPYdV9uwul30QKCnphutrMtY8BRTXiXyKqmcp7V2d/\nd5o9KS/QFELvWByD8H3VdOZ1DwpLgENhAYW0NUSk8CM0V2c7DusdMxvHGEhs0UEB\nzK1vkbUQqAwCk6jUoth34KWy\n-----END PRIVATE KEY-----\n'
+      FIREBASE_CLIENT_EMAIL: 'firebase-adminsdk-fbsvc@borboleta-f137e.iam.gserviceaccount.com'
+      FIREBASE_CLIENT_ID: '112306729830678092178'
+      FIREBASE_STORAGE_BUCKET: 'borboleta-f137e.firebasestorage.app'
+    restart: unless-stopped
 

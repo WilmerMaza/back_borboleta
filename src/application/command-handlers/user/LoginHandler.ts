@@ -2,7 +2,6 @@ import { injectable, inject } from 'tsyringe';
 import { IUserRepository } from '../../../domain/repositories/IUserRepository';
 import { AuthService } from '../../services/AuthService';
 import { LoginCommand } from '../../commands/user/LoginCommand';
-import { Logger } from '../../../shared/utils/logger';
 
 @injectable()
 export class LoginHandler {
@@ -18,21 +17,14 @@ export class LoginHandler {
     expires_in: number;
   }> {
     try {
-      Logger.log('Iniciando proceso de login para usuario normal:', command.email);
 
       // Buscar usuario normal
       const user = await this.userRepository.findByEmail(command.email);
       
       if (!user) {
-        Logger.log('❌ Usuario normal no encontrado:', command.email);
+
         throw new Error('Credenciales inválidas');
       }
-
-      Logger.log('✅ Usuario normal encontrado:', {
-        id: user.id,
-        email: user.email,
-        name: user.name
-      });
 
       // Verificar contraseña
       const isPasswordValid = await this.authService.comparePassword(
@@ -41,11 +33,10 @@ export class LoginHandler {
       );
 
       if (!isPasswordValid) {
-        Logger.log('❌ Contraseña inválida para usuario normal:', command.email);
         throw new Error('Credenciales inválidas');
       }
 
-      Logger.log('✅ Contraseña válida para usuario normal:', command.email);
+     
 
       // Generar token JWT
       const token = this.authService.generateToken(user.id!, user.email);
@@ -56,11 +47,6 @@ export class LoginHandler {
       const userWithoutPassword: any = { ...user };
       delete userWithoutPassword.password;
 
-      Logger.log('✅ Usuario normal autenticado exitosamente:', {
-        email: userWithoutPassword.email,
-        id: userWithoutPassword.id,
-        name: userWithoutPassword.name
-      });
 
       return {
         user: userWithoutPassword,
@@ -69,7 +55,6 @@ export class LoginHandler {
         expires_in: 86400 // 24 horas en segundos
       };
     } catch (error: any) {
-      Logger.error('Error en LoginHandler:', error);
       throw error;
     }
   }

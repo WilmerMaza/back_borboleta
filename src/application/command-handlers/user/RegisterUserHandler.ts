@@ -8,25 +8,27 @@ import { Logger } from '../../../shared/utils/logger';
 @injectable()
 export class RegisterUserHandler {
   constructor(
-    @inject('UserRepository') private userRepository: IUserRepository,
-    @inject('AuthService') private authService: AuthService
+    @inject("UserRepository") private userRepository: IUserRepository,
+    @inject("AuthService") private authService: AuthService
   ) {}
 
   async handle(command: RegisterUserCommand): Promise<any> {
     try {
       const userData = command.data;
-      Logger.log('Iniciando proceso de registro de usuario:', userData.email);
 
       // Verificar si el usuario ya existe
-      const existingUser = await this.userRepository.findByEmail(userData.email);
-      
+      const existingUser = await this.userRepository.findByEmail(
+        userData.email
+      );
+
       if (existingUser) {
-        Logger.log('❌ Usuario ya existe:', userData.email);
-        throw new Error('El email ya está registrado');
+        throw new Error("El email ya está registrado");
       }
 
       // Hash de la contraseña
-      const hashedPassword = await this.authService.hashPassword(userData.password);
+      const hashedPassword = await this.authService.hashPassword(
+        userData.password
+      );
 
       // Crear usuario con rol "consumer" (cliente) por defecto
       const newUserData = {
@@ -40,7 +42,7 @@ export class RegisterUserHandler {
         email_verified_at: undefined,
         is_approved: false,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       const user = await this.userRepository.create(newUserData);
@@ -62,7 +64,6 @@ export class RegisterUserHandler {
         role_slug: 'consumer'
       };
     } catch (error: any) {
-      Logger.error('Error en RegisterUserHandler:', error);
       throw error;
     }
   }

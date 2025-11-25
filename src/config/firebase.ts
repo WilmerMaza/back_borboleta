@@ -11,7 +11,11 @@ const serviceAccount = {
 };
 
 // Validaciones mínimas (evita inicializar si falta algo crítico)
-["FIREBASE_PROJECT_ID","FIREBASE_PRIVATE_KEY","FIREBASE_CLIENT_EMAIL"].forEach((k) => {
+[
+  "FIREBASE_PROJECT_ID",
+  "FIREBASE_PRIVATE_KEY",
+  "FIREBASE_CLIENT_EMAIL",
+].forEach((k) => {
   if (!process.env[k]) {
     throw new Error(`Falta variable de entorno: ${k}`);
   }
@@ -20,11 +24,14 @@ const serviceAccount = {
 // Inicializa Admin SDK con el bucket correcto
 initializeApp({
   credential: cert(serviceAccount as any),
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "borboleta-f137e.appspot.com",
+  storageBucket:
+    process.env.FIREBASE_STORAGE_BUCKET || "borboleta-f137e.appspot.com",
 });
 
 // Usa getStorage() (recomendado en TS/ESM)
-const bucket = getStorage().bucket(process.env.FIREBASE_STORAGE_BUCKET || "borboleta-f137e.appspot.com");
+const bucket = getStorage().bucket(
+  process.env.FIREBASE_STORAGE_BUCKET || "borboleta-f137e.appspot.com"
+);
 
 console.log("✅ Firebase Storage (Admin SDK) inicializado");
 
@@ -36,7 +43,7 @@ export async function uploadBuffer(
 ) {
   const file = bucket.file(destinationPath);
   const metadata = {
-    metadata: { firebaseStorageDownloadTokens: uuid() },
+    metadata: { firebaseStorageDownloadTokens: randomUUID() },
     contentType: contentType || "application/octet-stream",
     cacheControl: "public, max-age=31536000",
   };
@@ -45,7 +52,10 @@ export async function uploadBuffer(
   return { path: destinationPath };
 }
 
-export async function getSignedUrl(path: string, expiresInMinutes = 60): Promise<string> {
+export async function getSignedUrl(
+  path: string,
+  expiresInMinutes = 60
+): Promise<string> {
   const file = bucket.file(path);
   const [url] = await file.getSignedUrl({
     action: "read",
@@ -60,7 +70,11 @@ export async function deleteFile(path: string) {
 }
 
 // Compat
-export const uploadFile = async (file: Buffer, path: string, contentType: string) => {
+export const uploadFile = async (
+  file: Buffer,
+  path: string,
+  contentType: string
+) => {
   try {
     const result = await uploadBuffer(file, path, contentType);
     const url = await getSignedUrl(path, 525600); // 1 año
