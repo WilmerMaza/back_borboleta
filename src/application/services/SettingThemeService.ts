@@ -1,15 +1,19 @@
 import { SettingThemeRepository } from '../../infrastructure/repositories/SettingThemeRepository';
 import { ProductRepository } from '../../infrastructure/repositories/ProductRepository';
+import { CategoryRepository } from '../../infrastructure/repositories/CategoryRepository';
 import { ISettingThemeService } from '../../domain/interfaces/ISettingThemeService';
 import { ISettingThemeResponse, ISettingThemeListResponse } from '../../domain/interfaces/ISettingThemeResponse';
+import { injectable, inject } from 'tsyringe';
 
+@injectable()
 export class SettingThemeService implements ISettingThemeService {
   private settingThemeRepository: SettingThemeRepository;
-  private productRepository: ProductRepository;
 
-  constructor() {
+  constructor(
+    @inject('ProductRepository') private productRepository: ProductRepository,
+    @inject('CategoryRepository') private categoryRepository: CategoryRepository
+  ) {
     this.settingThemeRepository = new SettingThemeRepository();
-    this.productRepository = new ProductRepository();
   }
 
   private async fillProductsIds(content: any): Promise<any> {
@@ -25,12 +29,46 @@ export class SettingThemeService implements ISettingThemeService {
     return options;
   }
 
+  private async fillCategoriesIds(content: any): Promise<any> {
+    // Obtener todas las categorías desde el repositorio
+    const categories = await this.categoryRepository.findAll();
+    const categoryIds = categories
+      .map(cat => cat.id)
+      .filter(id => typeof id === 'number');
+
+    const options = JSON.parse(JSON.stringify(content));
+    
+    // Actualizar IDs de categorías en diferentes secciones del contenido
+    if (options && options.categories_list) {
+      options.categories_list.category_ids = categoryIds;
+    }
+    
+    // También actualizar en secciones específicas como navigation, footer, etc.
+    if (options && options.navigation && options.navigation.categories) {
+      options.navigation.categories = categoryIds;
+    }
+    
+    if (options && options.footer && options.footer.categories) {
+      options.footer.categories = categoryIds;
+    }
+
+    console.log("📝 Categorías actualizadas en setting:", categoryIds);
+    return options;
+  }
+
+  private async fillIds(content: any): Promise<any> {
+    // Actualizar tanto productos como categorías
+    let updatedContent = await this.fillProductsIds(content);
+    updatedContent = await this.fillCategoriesIds(updatedContent);
+    return updatedContent;
+  }
+
   async getThemeByName(name: string): Promise<ISettingThemeResponse> {
     const theme = await this.settingThemeRepository.getThemeByName(name);
     if (!theme) {
       throw new Error(`Tema '${name}' no encontrado`);
     }
-    const content = await this.fillProductsIds(theme.content);
+    const content = await this.fillIds(theme.content);
     return {
       id: theme.id,
       name: theme.name || '',
@@ -44,7 +82,7 @@ export class SettingThemeService implements ISettingThemeService {
     if (!theme) {
       throw new Error(`Tema con slug '${slug}' no encontrado`);
     }
-    const content = await this.fillProductsIds(theme.content);
+    const content = await this.fillIds(theme.content);
     return {
       id: theme.id,
       name: theme.name || '',
@@ -57,7 +95,7 @@ export class SettingThemeService implements ISettingThemeService {
     const themes = await this.settingThemeRepository.getAllThemes();
     const populatedThemes = await Promise.all(
       themes.map(async (theme) => {
-        const content = await this.fillProductsIds(theme.content);
+        const content = await this.fillIds(theme.content);
         return {
           id: theme.id,
           name: theme.name,

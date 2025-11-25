@@ -1,10 +1,86 @@
 import { IProductRepository } from "../../domain/repositories/IProductRepository";
 import { IProduct } from "../../domain/entities/Product";
 import ProductModel from "../database/models/ProductModel";
-import { injectable } from "tsyringe";
+import { injectable, inject } from "tsyringe";
+import { IAttachmentRepository } from "../../domain/repositories/IAttachmentRepository";
 
 @injectable()
 export class ProductRepository implements IProductRepository {
+  constructor(
+    @inject('IAttachmentRepository') private attachmentRepository: IAttachmentRepository
+  ) {}
+
+  /**
+   * Procesa las imágenes de un producto (thumbnail y galleries)
+   */
+  private async processProductImages(product: any): Promise<any> {
+    try {
+      // Procesar product_thumbnail_id si existe
+      if (product.product_thumbnail_id) {
+        try {
+          const thumbnail = await this.attachmentRepository.findById(product.product_thumbnail_id);
+          if (thumbnail) {
+            product.product_thumbnail = {
+              id: thumbnail.id,
+              name: thumbnail.name,
+              disk: thumbnail.disk,
+              file_name: thumbnail.file_name,
+              mime_type: thumbnail.mime_type,
+              asset_url: thumbnail.asset_url,
+              original_url: thumbnail.original_url
+            };
+            console.log(`✅ Imagen thumbnail procesada para producto ${product.id}`);
+            // Eliminar el campo temporal solo si se procesó correctamente
+            delete product.product_thumbnail_id;
+          } else {
+            console.warn(`⚠️ No se encontró thumbnail con ID ${product.product_thumbnail_id} para producto ${product.id}`);
+          }
+        } catch (error) {
+          console.error(`❌ Error procesando thumbnail ${product.product_thumbnail_id}:`, error);
+        }
+      }
+
+      // Procesar product_galleries_id si existe
+      if (Array.isArray(product.product_galleries_id)) {
+        const galleries = [];
+        for (const attachmentId of product.product_galleries_id) {
+          try {
+            const attachment = await this.attachmentRepository.findById(attachmentId);
+            if (attachment) {
+              galleries.push({
+                id: attachment.id,
+                name: attachment.name,
+                disk: attachment.disk,
+                file_name: attachment.file_name,
+                mime_type: attachment.mime_type,
+                asset_url: attachment.asset_url,
+                original_url: attachment.original_url
+              });
+            } else {
+              console.warn(`⚠️ No se encontró imagen de galería con ID ${attachmentId} para producto ${product.id}`);
+            }
+          } catch (error) {
+            console.error(`❌ Error procesando imagen de galería ${attachmentId}:`, error);
+          }
+        }
+        
+        if (galleries.length > 0) {
+          product.product_galleries = galleries;
+          console.log(`✅ ${galleries.length} imágenes de galería procesadas para producto ${product.id}`);
+          // Eliminar el campo temporal solo si se procesaron correctamente
+          delete product.product_galleries_id;
+        } else {
+          console.warn(`⚠️ No se pudieron procesar imágenes de galería para producto ${product.id}`);
+        }
+      }
+
+      return product;
+    } catch (error) {
+      console.error('❌ Error general procesando imágenes del producto:', error);
+      return product; // Devolver producto sin procesar en caso de error
+    }
+  }
+
   async create(product: Partial<IProduct>): Promise<IProduct> {
     try {
     
@@ -115,8 +191,11 @@ export class ProductRepository implements IProductRepository {
       if (!product) return null;
 
       const productObj = product.toObject();
+      // Procesar imágenes del producto
+      const processedProduct = await this.processProductImages(productObj);
+      
       return {
-        ...productObj,
+        ...processedProduct,
       };
     } catch (error) {
       console.error("❌ Error en ProductRepository.findByAutoIncrementId:", error);
@@ -130,8 +209,11 @@ export class ProductRepository implements IProductRepository {
       if (!product) return null;
 
       const productObj = product.toObject();
+      // Procesar imágenes del producto
+      const processedProduct = await this.processProductImages(productObj);
+      
       return {
-        ...productObj,
+        ...processedProduct,
       };
     } catch (error) {
       console.error("❌ Error en ProductRepository.findBySlug:", error);
@@ -203,8 +285,12 @@ export class ProductRepository implements IProductRepository {
       if (!updatedProduct) return null;
 
       const productObj = updatedProduct.toObject();
+      
+      // Procesar imágenes del producto después de la actualización
+      const processedProduct = await this.processProductImages(productObj);
+      
       return {
-        ...productObj,
+        ...processedProduct,
       };
     } catch (error) {
       console.error("❌ Error en ProductRepository.update:", error);
@@ -265,18 +351,43 @@ export class ProductRepository implements IProductRepository {
         }
       }
 
+      console.log("🔄 Actualizando producto en base de datos...");
       const updatedProduct = await ProductModel.findOneAndUpdate({ id: id }, product, {
         new: true,
       });
-      if (!updatedProduct) return null;
+      if (!updatedProduct) {
+        console.error("❌ No se pudo actualizar el producto - producto no encontrado");
+        return null;
+      }
 
+      console.log("✅ Producto actualizado en base de datos");
       const productObj = updatedProduct.toObject();
+      
+      // Procesar imágenes del producto después de la actualización
+      console.log("🖼️ Procesando imágenes del producto...");
+      
+      // Intentar procesar imágenes, pero si falla, devolver el producto sin procesar
+      let processedProduct = productObj;
+      try {
+        processedProduct = await this.processProductImages(productObj);
+        console.log("✅ Imágenes procesadas correctamente");
+      } catch (imageError) {
+        console.error("❌ Error procesando imágenes, devolviendo producto sin procesar:", imageError);
+        // Continuar con el producto sin procesar imágenes
+      }
+      
       return {
-        ...productObj,
+        ...processedProduct,
       };
     } catch (error) {
       console.error("❌ Error en ProductRepository.updateByNumericId:", error);
-      throw new Error("Error al actualizar el producto en la base de datos");
+      console.error("❌ Error details:", {
+        id,
+        product: product,
+        errorMessage: error.message,
+        errorStack: error.stack
+      });
+      throw new Error(`Error al actualizar el producto en la base de datos: ${error.message}`);
     }
   }
 
@@ -307,8 +418,11 @@ export class ProductRepository implements IProductRepository {
       if (!product) return null;
 
       const productObj = product.toObject();
+      // Procesar imágenes del producto
+      const processedProduct = await this.processProductImages(productObj);
+      
       return {
-        ...productObj,
+        ...processedProduct,
       };
     } catch (error) {
       console.error("❌ Error en ProductRepository.findByNumericId:", error);
