@@ -5,8 +5,52 @@ dotenv.config(); // esto carga el .env de la raíz (DEBE ser antes de cualquier 
 
 import express from 'express';
 import cors from 'cors';
-import './infrastructure/di/registry';  // Importar el registro de dependencias
-import './infrastructure/database/models';  // Importar todos los modelos
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+
+app.use(cors());
+
+// Middleware para bypass del banner de ngrok (si es necesario)
+app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+  // Permitir peticiones de ngrok sin el banner
+  if (req.headers['ngrok-skip-browser-warning']) {
+    // Ya tiene el header, continuar
+  }
+  next();
+});
+
+
+app.post(
+  '/api/wompi/webhook',
+  express.raw({ type: 'application/json' }),
+  async (req, res) => {
+    try {
+      const { container } = await import('./infrastructure/di/registry');
+      const { WompiController } = await import('./presentation/controllers/WompiController');
+      const wompiController = container.resolve('WompiController') as InstanceType<typeof WompiController>;
+      return wompiController.handleWebhook(req, res);
+    } catch (error: any) {
+      console.error('Error en webhook handler:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error procesando webhook',
+        error: error.message
+      });
+    }
+  }
+);
+
+// --------- 2️⃣ JSON DESPUÉS DEL WEBHOOK ---------
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// --------- 3️⃣ AHORA IMPORTAS TODO LO DEMÁS (SEGURO) ---------
+import './infrastructure/di/registry';
+import './infrastructure/database/models';
+
+// 💚 3️⃣ AHORA sí cargar todas las demás rutas
 import productRoutes from './presentation/routes/product.routes';
 import categoryRoutes from './presentation/routes/category.routes';
 import orderRoutes from './presentation/routes/order.routes';
@@ -29,13 +73,6 @@ import attributeValueRoutes from './presentation/routes/attribute-value.routes';
 import wompiRoutes from './presentation/routes/wompi.routes';
 import userRoutes from './routes/userRoutes';
 import connectDB from './infrastructure/database/config/database';
-
-const app = express();
-const port = process.env.PORT || 3000;
-
-// Middlewares
-app.use(cors());
-app.use(express.json());
 
 // Conectar a MongoDB
 connectDB()

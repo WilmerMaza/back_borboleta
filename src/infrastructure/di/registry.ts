@@ -62,6 +62,7 @@ import { AttributeController } from '../../presentation/controllers/AttributeCon
 import { AttributeValueController } from '../../presentation/controllers/AttributeValueController';
 import { WompiService } from '../../application/services/WompiService';
 import { WompiController } from '../../presentation/controllers/WompiController';
+import { PendingOrderRepository } from '../repositories/PendingOrderRepository';
 
 // Registro de repositorios
 container.register('ProductRepository', {
@@ -78,6 +79,10 @@ container.register('CategoryRepository', {
 
 container.register('OrderRepository', {
   useClass: OrderRepository
+});
+
+container.register('PendingOrderRepository', {
+  useClass: PendingOrderRepository
 });
 
 container.register('CartRepository', {
@@ -318,11 +323,10 @@ container.register('AttributeValueController', {
   useClass: AttributeValueController
 });
 
+// Registro de servicios de Wompi
 container.register('WompiService', {
   useClass: WompiService
 });
-
-// Instanciar WompiService para que se ejecute su constructor y muestre la configuración
 
 container.register('WompiController', {
   useClass: WompiController
