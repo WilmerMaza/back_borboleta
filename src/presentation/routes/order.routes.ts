@@ -18,4 +18,7 @@ router.get('/:id', authenticateToken, (req, res) => orderController.getOrderById
 // GET /api/orders/number/:orderNumber - Obtener orden por número (requiere autenticación)
 router.get('/number/:orderNumber', authenticateToken, (req, res) => orderController.getOrderByOrderNumber(req, res));
 
+// GET /api/orders/by-temp/:tempId - Obtener orden por temp_id (no requiere autenticación, para validación de pago)
+router.get('/by-temp/:tempId', (req, res) => orderController.getOrderByTempId(req, res));
+
 export default router; 
