@@ -3,7 +3,7 @@ name: Deploy DEV to Elastic Beanstalk
 on:
   push:
     branches:
-      - develop   # si tu rama principal es otra, cámbiala aquí
+      - main   # si tu rama principal es otra, cámbiala aquí
 
 jobs:
   deploy:
