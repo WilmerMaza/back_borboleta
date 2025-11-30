@@ -1,6 +1,7 @@
+import { randomUUID } from "crypto";
 import { initializeApp, cert } from "firebase-admin/app";
 import { getStorage } from "firebase-admin/storage";
-import { v4 as uuid } from "uuid";
+
 
 const serviceAccount = {
   projectId: process.env.FIREBASE_PROJECT_ID,
