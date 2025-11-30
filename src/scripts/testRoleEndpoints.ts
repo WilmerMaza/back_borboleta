@@ -202,7 +202,7 @@ async function runTests() {
   console.log('\n');
   
   // 3. Probar GET /api/roles
-  const roles = await testGetRoles();
+  await testGetRoles();
   console.log('\n');
   
   // 4. Probar GET /api/modules
