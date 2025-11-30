@@ -74,6 +74,7 @@ export interface IOrder {
   // Campos adicionales para pagos
   payment_mode?: string;
   order_payment_status?: string;
+  payment_reference?: string; // Referencia de Wompi (ej: 3JEX01KLM7ZGT)
   // Campos adicionales para envío
   delivery_description?: string;
   delivery_interval?: string;

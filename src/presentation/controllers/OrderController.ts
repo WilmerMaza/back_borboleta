@@ -8,8 +8,7 @@ import UserModel from '../../infrastructure/database/models/UserModel';
 @injectable()
 export class OrderController {
   constructor(
-    @inject('OrderRepository') private orderRepository: OrderRepository,
-  
+    @inject('OrderRepository') private orderRepository: OrderRepository
   ) {}
 
   async createOrder(req: Request, res: Response): Promise<void> {
@@ -175,24 +174,6 @@ export class OrderController {
 
       // Adaptar las órdenes al formato esperado por el frontend
       const ordersAdapted = await Promise.all(orders.map(async (order: any) => {
-        // Debug: Log de la orden original
-        console.log('🔍 Orden original:', {
-          id: order.id,
-          order_number: order.order_number,
-          total_amount: order.total_amount,
-          subtotal: order.subtotal,
-          tax_amount: order.tax_amount,
-          shipping_cost: order.shipping_cost,
-          discount_amount: order.discount_amount,
-          created_at: order.created_at,
-          updated_at: order.updated_at,
-          // Verificar todas las propiedades de timestamp
-          createdAt: (order as any).createdAt,
-          updatedAt: (order as any).updatedAt,
-          _created_at: (order as any)._created_at,
-          _updated_at: (order as any)._updated_at
-        });
-
         const user = order.user_id ? await UserModel.findOne({ id: order.user_id }) : null;
         const customerName = user ? user.name : '';
 
@@ -392,14 +373,6 @@ export class OrderController {
           created_at: order.created_at || '',
           updated_at: order.updated_at || ''
         };
-
-        // Debug: Log de la orden adaptada
-        console.log('🔍 Orden adaptada:', {
-          id: adaptedOrder.id,
-          order_number: adaptedOrder.order_number,
-          created_at: adaptedOrder.created_at,
-          amount: adaptedOrder.amount
-        });
 
         return adaptedOrder;
       }));
@@ -768,6 +741,53 @@ export class OrderController {
     } catch (error: any) {
       console.error('❌ Error al obtener orden por número:', error.message);
       
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error al obtener la orden'
+      });
+    }
+  }
+
+  /**
+   * GET /api/orders/by-temp/:tempId
+   * Obtiene la orden por temp_id (busca primero en órdenes reales, luego en temporales)
+   */
+  async getOrderByTempId(req: Request, res: Response): Promise<void> {
+    try {
+      const { tempId } = req.params;
+
+      if (!tempId) {
+        res.status(400).json({
+          success: false,
+          message: 'El temp_id es requerido'
+        });
+        return;
+      }
+
+      console.log('🔍 Buscando orden por temp_id:', tempId);
+
+      // 1️⃣ Buscar primero en órdenes reales (por si ya fue creada)
+      let order = await this.orderRepository.findByOrderNumber(tempId) || 
+                  await this.orderRepository.findById(tempId);
+
+      if (order) {
+        console.log('✅ Orden real encontrada:', order.id);
+        res.status(200).json({
+          success: true,
+          data: order,
+          is_temporary: false
+        });
+        return;
+      }
+
+      // 2️⃣ No se encontró la orden
+      res.status(404).json({
+        success: false,
+        message: 'Orden no encontrada'
+      });
+
+    } catch (error: any) {
+      console.error('❌ Error al obtener orden por temp_id:', error.message);
       res.status(500).json({
         success: false,
         message: error.message || 'Error al obtener la orden'

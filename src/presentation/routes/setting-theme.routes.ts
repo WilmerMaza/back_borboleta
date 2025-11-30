@@ -1,8 +1,9 @@
 import { Router } from 'express';
+import { container } from '../../infrastructure/di/registry';
 import { SettingThemeController } from '../controllers/SettingThemeController';
 
 const router = Router();
-const settingThemeController = new SettingThemeController();
+const settingThemeController = container.resolve<SettingThemeController>('SettingThemeController');
 
 // Obtener todos los temas
 router.get('/', (req, res) => settingThemeController.getAllThemes(req, res));

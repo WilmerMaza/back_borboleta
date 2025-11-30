@@ -161,8 +161,6 @@ export class UnifiedAuthController {
   // GET /api/admin/me - Obtener información del usuario autenticado (backoffice)
   getMeBackoffice = async (req: any, res: Response): Promise<void> => {
     try {
-      Logger.log('Solicitud de información de usuario backoffice recibida');
-
       if (!req.user) {
         res.status(401).json({
           success: false,
@@ -201,13 +199,6 @@ export class UnifiedAuthController {
           id: { $in: roleInfo.permissions } 
         });
       }
-
-      Logger.log('✅ Información de usuario backoffice obtenida:', {
-        email: userObj.email,
-        name: userObj.name,
-        roleId: userObj.role_id,
-        permissionsCount: permissions.length
-      });
 
       res.status(200).json({
         success: true,

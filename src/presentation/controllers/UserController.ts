@@ -250,8 +250,9 @@ export class UserController {
       const users = await userRepository.findAll();
 
       // Formatear respuesta (sin contraseñas)
-      const formattedUsers = users.map((user) => {
-        const { password, ...userWithoutPassword } = user;
+      const formattedUsers = users.map(user => {
+        const userWithoutPassword: any = { ...user };
+        delete userWithoutPassword.password;
         return userWithoutPassword;
       });
 
@@ -327,7 +328,8 @@ export class UserController {
       }
 
       // Formatear respuesta (sin contraseña)
-      const { password, ...userWithoutPassword } = updatedUser;
+      const userWithoutPassword: any = { ...updatedUser };
+      delete userWithoutPassword.password;
 
       res.status(200).json({
         success: true,

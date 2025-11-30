@@ -20,8 +20,10 @@ export class GetUserProfileHandler {
         throw new Error('Usuario no encontrado');
       }
 
-      // Remover la contraseña de la respuesta
-      const { password, ...userWithoutPassword } = user;
+      // Remover la contraseña de la respuesta (ya debería estar excluido por el modelo)
+      // pero lo excluimos manualmente por seguridad
+      const userWithoutPassword: any = { ...user };
+      delete userWithoutPassword.password;
       
       return userWithoutPassword as IUser;
     } catch (error: any) {

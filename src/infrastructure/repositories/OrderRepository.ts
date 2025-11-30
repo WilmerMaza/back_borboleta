@@ -9,18 +9,6 @@ export class OrderRepository implements IOrderRepository {
     try {
       const newOrder = new OrderModel(order);
       const savedOrder = await newOrder.save();
-      
-      // Debug: Log de la orden guardada
-      console.log('🔍 Orden guardada en DB:', {
-        _id: savedOrder._id,
-        createdAt: (savedOrder as any).createdAt,
-        updatedAt: (savedOrder as any).updatedAt,
-        created_at: (savedOrder as any).created_at,
-        updated_at: (savedOrder as any).updated_at,
-        order_number: savedOrder.order_number,
-        total_amount: savedOrder.total_amount
-      });
-      
       const orderObj = savedOrder.toObject();
       
       // Mongoose timestamps están en createdAt y updatedAt
@@ -34,14 +22,20 @@ export class OrderRepository implements IOrderRepository {
         created_at: createdAt ? createdAt.toISOString() : new Date().toISOString(),
         updated_at: updatedAt ? updatedAt.toISOString() : new Date().toISOString()
       };
-    } catch (error) {
-      console.error('❌ Error detallado en OrderRepository.create:', error);
+    } catch (error: any) {
+      console.error('Error al crear la orden:', error);
       throw new Error(`Error al crear la orden en la base de datos: ${error.message}`);
     }
   }
 
   async findById(id: string): Promise<IOrder | null> {
     try {
+      // Validar que el ID sea un ObjectId válido de MongoDB
+      if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
+        // Si no es un ObjectId válido, intentar buscar por order_number
+        return await this.findByOrderNumber(id);
+      }
+
       const order = await OrderModel.findById(id)
         .populate('user_id', 'name email')
         .populate('items.product_id', 'name price sale_price');
@@ -61,8 +55,14 @@ export class OrderRepository implements IOrderRepository {
         created_at: createdAt ? createdAt.toISOString() : new Date().toISOString(),
         updated_at: updatedAt ? updatedAt.toISOString() : new Date().toISOString()
       };
-    } catch (error) {
-      throw new Error('Error al obtener la orden de la base de datos');
+    } catch (error: any) {
+      // Si es un error de formato de ID, simplemente devolver null
+      if (error.name === 'CastError' || error.message?.includes('Cast to ObjectId')) {
+        return null;
+      }
+      console.error('Error en OrderRepository.findById:', error);
+      // Devolver null en lugar de lanzar error para permitir búsquedas alternativas
+      return null;
     }
   }
 
@@ -100,14 +100,6 @@ export class OrderRepository implements IOrderRepository {
       
       return orders.map(order => {
         const orderObj = order.toObject();
-        
-        // Debug: Log de cada orden encontrada
-        console.log('🔍 Orden encontrada en findByUserId:', {
-          _id: order._id,
-          createdAt: (order as any).createdAt,
-          updatedAt: (order as any).updatedAt,
-          order_number: order.order_number
-        });
         
         // Mongoose timestamps están en createdAt y updatedAt
         const createdAt = (order as any).createdAt;
@@ -196,7 +188,7 @@ export class OrderRepository implements IOrderRepository {
         id: orderObj._id
       };
     } catch (error) {
-      console.error('❌ Error en OrderRepository.update:', error);
+      console.error('Error en OrderRepository.update:', error);
       throw new Error('Error al actualizar la orden en la base de datos');
     }
   }
@@ -206,7 +198,7 @@ export class OrderRepository implements IOrderRepository {
       const result = await OrderModel.findByIdAndDelete(id);
       return !!result;
     } catch (error) {
-      console.error('❌ Error en OrderRepository.delete:', error);
+      console.error('Error en OrderRepository.delete:', error);
       throw new Error('Error al eliminar la orden de la base de datos');
     }
   }
@@ -217,6 +209,88 @@ export class OrderRepository implements IOrderRepository {
       return total;
     } catch (error) {
       throw new Error('Error al contar las órdenes en la base de datos');
+    }
+  }
+
+  /**
+   * Busca una orden por la referencia de Wompi
+   * Busca primero en payment_reference, luego en notes como fallback
+   * @param reference - La referencia de Wompi
+   * @returns La orden encontrada o null
+   */
+  async findOrderByReference(reference: string): Promise<IOrder | null> {
+    try {
+      // Primero buscar en payment_reference (más eficiente)
+      let order = await OrderModel.findOne({
+        payment_reference: reference
+      })
+        .populate('user_id', 'name email')
+        .populate('items.product_id', 'name price sale_price');
+
+      // Si no se encuentra, buscar en notes como fallback (compatibilidad con órdenes antiguas)
+      if (!order) {
+        order = await OrderModel.findOne({
+          notes: { $regex: `\\[WOMPI_REFERENCE:${reference}\\]` }
+        })
+          .populate('user_id', 'name email')
+          .populate('items.product_id', 'name price sale_price');
+      }
+
+      if (!order) return null;
+
+      const orderObj = order.toObject();
+      const createdAt = (order as any).createdAt;
+      const updatedAt = (order as any).updatedAt;
+
+      return {
+        ...orderObj,
+        id: orderObj._id,
+        created_at: createdAt ? createdAt.toISOString() : new Date().toISOString(),
+        updated_at: updatedAt ? updatedAt.toISOString() : new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error en OrderRepository.findOrderByReference:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Busca la orden más reciente pendiente de un usuario con método de pago Wompi
+   * Útil cuando el webhook llega pero no encuentra la referencia
+   * @param userId - ID del usuario
+   * @param minutesAgo - Buscar órdenes creadas en los últimos N minutos (default: 30)
+   * @returns La orden encontrada o null
+   */
+  async findRecentPendingWompiOrder(userId: string, minutesAgo: number = 30): Promise<IOrder | null> {
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setMinutes(cutoffDate.getMinutes() - minutesAgo);
+
+      const order = await OrderModel.findOne({
+        user_id: userId,
+        payment_method: 'wompi',
+        payment_status: 'pending',
+        createdAt: { $gte: cutoffDate }
+      })
+        .sort({ createdAt: -1 }) // La más reciente primero
+        .populate('user_id', 'name email')
+        .populate('items.product_id', 'name price sale_price');
+
+      if (!order) return null;
+
+      const orderObj = order.toObject();
+      const createdAt = (order as any).createdAt;
+      const updatedAt = (order as any).updatedAt;
+
+      return {
+        ...orderObj,
+        id: orderObj._id,
+        created_at: createdAt ? createdAt.toISOString() : new Date().toISOString(),
+        updated_at: updatedAt ? updatedAt.toISOString() : new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error en OrderRepository.findRecentPendingWompiOrder:', error);
+      return null;
     }
   }
 } 

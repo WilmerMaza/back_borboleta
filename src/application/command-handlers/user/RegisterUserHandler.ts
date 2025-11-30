@@ -1,7 +1,9 @@
-import { injectable, inject } from "tsyringe";
-import { IUserRepository } from "../../../domain/repositories/IUserRepository";
-import { AuthService } from "../../services/AuthService";
-import { RegisterUserCommand } from "../../commands/user/RegisterUserCommand";
+import { injectable, inject } from 'tsyringe';
+import { IUserRepository } from '../../../domain/repositories/IUserRepository';
+
+import { AuthService } from '../../services/AuthService';
+import { RegisterUserCommand } from '../../commands/user/RegisterUserCommand';
+import { Logger } from '../../../shared/utils/logger';
 
 @injectable()
 export class RegisterUserHandler {
@@ -35,7 +37,7 @@ export class RegisterUserHandler {
         password: hashedPassword,
         phone: userData.phone,
         country_code: userData.country_code,
-        role_id: 2, // ID del rol "consumer" (cliente)
+        role_id: 4, // ID del rol "consumer" (cliente)
         status: true,
         email_verified_at: undefined,
         is_approved: false,
@@ -45,19 +47,21 @@ export class RegisterUserHandler {
 
       const user = await this.userRepository.create(newUserData);
 
-      // Preparar respuesta del usuario (sin contraseña)
+      Logger.log('✅ Usuario registrado exitosamente:', {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role_id: user.role_id
+      });
+
+      // Asegurarse de que el password nunca se devuelva (ya debería estar excluido por el modelo)
+      const userResponse: any = { ...user };
+      delete userResponse.password;
 
       return {
-        email: user.email,
-        number: {
-          phone: user.phone,
-          country_code: user.country_code,
-        },
-        token: "",
-        role_name: "consumer",
-        role_slug: "consumer",
-        access_token: this.authService.generateToken(user.id!, user.email),
-        permissions: [],
+        ...userResponse,
+        role_name: 'consumer',
+        role_slug: 'consumer'
       };
     } catch (error: any) {
       throw error;

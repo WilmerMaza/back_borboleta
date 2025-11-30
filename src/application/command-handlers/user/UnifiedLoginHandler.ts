@@ -62,7 +62,10 @@ export class UnifiedLoginHandler {
       const token = this.authService.generateToken(user.id!, user.email);
 
       // Preparar respuesta del usuario (sin contraseña)
-      const { password, ...userWithoutPassword } = user;
+      // El password ya debería estar excluido por el transform del modelo,
+      // pero lo excluimos manualmente por seguridad
+      const userWithoutPassword: any = { ...user };
+      delete userWithoutPassword.password;
 
       // Obtener información del rol
       const roleInfo = await this.getRoleInfo(user.role_id);
@@ -91,18 +94,29 @@ export class UnifiedLoginHandler {
   }
 
   private async validateAccess(user: any, loginType: 'frontend' | 'backoffice'): Promise<void> {
+    Logger.log(`Validando acceso para usuario ${user.email} con role_id: ${user.role_id}, loginType: ${loginType}`);
+    
     const roleInfo = await this.getRoleInfo(user.role_id);
     
     if (!roleInfo) {
-      throw new Error('Rol no válido');
+      Logger.error(`❌ Rol no encontrado para usuario ${user.email} con role_id: ${user.role_id}`);
+      throw new Error(`Rol no válido. El usuario no tiene un rol asignado válido (role_id: ${user.role_id})`);
     }
+
+    Logger.log(`✅ Rol encontrado:`, {
+      id: roleInfo.id,
+      name: roleInfo.name,
+      slug: roleInfo.slug
+    });
 
     if (loginType === 'frontend') {
       if (roleInfo.slug !== 'consumer') {
+        Logger.log(`❌ Usuario ${user.email} intenta acceder al frontend con rol ${roleInfo.slug}, solo 'consumer' está permitido`);
         throw new Error('Solo los usuarios cliente pueden acceder a la aplicación móvil');
       }
     } else if (loginType === 'backoffice') {
       if (roleInfo.slug === 'consumer') {
+        Logger.log(`❌ Usuario ${user.email} intenta acceder al backoffice con rol consumer`);
         throw new Error('Los usuarios cliente no pueden acceder al panel administrativo');
       }
     }
@@ -110,12 +124,28 @@ export class UnifiedLoginHandler {
 
   private async getRoleInfo(roleId: number): Promise<any> {
     try {
-      if (!roleId) return null;
+      if (!roleId) {
+        Logger.error('⚠️ No se proporcionó role_id');
+        return null;
+      }
       
+      Logger.log(`Buscando rol con ID: ${roleId}`);
       const role = await this.roleRepository.findById(roleId);
+      
+      if (!role) {
+        Logger.error(`⚠️ Rol no encontrado con ID: ${roleId}`);
+        return null;
+      }
+      
+      Logger.log(`✅ Rol encontrado:`, {
+        id: role.id,
+        name: role.name,
+        slug: role.slug
+      });
+      
       return role;
-    } catch (error) {
-      Logger.error('Error al obtener información del rol:', error);
+    } catch (error: any) {
+      Logger.error(`Error al obtener información del rol (ID: ${roleId}):`, error);
       return null;
     }
   }

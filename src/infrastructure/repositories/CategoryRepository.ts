@@ -4,7 +4,34 @@ import { ICategory } from "../../domain/entities/Category";
 
 @injectable()
 export class CategoryRepository {
+  
+  /**
+   * Genera un slug a partir de un texto
+   */
+  private generateSlug(text: string): string {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[áàäâ]/g, 'a')
+      .replace(/[éèëê]/g, 'e')
+      .replace(/[íìïî]/g, 'i')
+      .replace(/[óòöô]/g, 'o')
+      .replace(/[úùüû]/g, 'u')
+      .replace(/[ñ]/g, 'n')
+      .replace(/[ç]/g, 'c')
+      .replace(/[^a-z0-9\s-]/g, '') // Remover caracteres especiales
+      .replace(/\s+/g, '-') // Reemplazar espacios con guiones
+      .replace(/-+/g, '-') // Reemplazar múltiples guiones con uno solo
+      .replace(/^-|-$/g, ''); // Remover guiones al inicio y final
+  }
+
   async create(categoryData: ICategory): Promise<ICategory> {
+    // Si no se proporciona slug, generar uno automáticamente desde el name
+    if (!categoryData.slug && categoryData.name) {
+      categoryData.slug = this.generateSlug(categoryData.name);
+      console.log("📝 Slug generado automáticamente:", categoryData.slug, "para categoría:", categoryData.name);
+    }
+
     const category = new CategoryModel(categoryData);
     return await category.save();
   }
@@ -48,12 +75,24 @@ export class CategoryRepository {
     id: string,
     categoryData: Partial<ICategory>
   ): Promise<ICategory | null> {
+    // Si se actualiza el name y no se proporciona slug, generar uno automáticamente
+    if (categoryData.name && !categoryData.slug) {
+      categoryData.slug = this.generateSlug(categoryData.name);
+      console.log("📝 Slug regenerado automáticamente:", categoryData.slug, "para categoría:", categoryData.name);
+    }
+
     return await CategoryModel.findByIdAndUpdate(id, categoryData, {
       new: true,
     });
   }
 
   async updateByAutoIncrementId(id: number, categoryData: Partial<ICategory>): Promise<ICategory | null> {
+    // Si se actualiza el name y no se proporciona slug, generar uno automáticamente
+    if (categoryData.name && !categoryData.slug) {
+      categoryData.slug = this.generateSlug(categoryData.name);
+      console.log("📝 Slug regenerado automáticamente:", categoryData.slug, "para categoría:", categoryData.name);
+    }
+
     return await CategoryModel.findOneAndUpdate({ id: id }, categoryData, {
       new: true,
     });

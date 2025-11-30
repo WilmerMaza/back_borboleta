@@ -199,6 +199,7 @@ const orderSchema = new mongoose.Schema(
     // Campos adicionales para pagos
     payment_mode: String,
     order_payment_status: String,
+    payment_reference: String, // Referencia de Wompi (ej: 3JEX01KLM7ZGT)
     // Campos adicionales para envío
     delivery_description: String,
     delivery_interval: String,

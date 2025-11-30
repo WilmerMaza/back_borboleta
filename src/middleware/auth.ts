@@ -16,8 +16,8 @@ export const authenticateToken = async (
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       res.status(401).json({
         success: false,
         message: "Token de acceso requerido",
@@ -25,7 +25,7 @@ export const authenticateToken = async (
       return;
     }
 
-    const token = authHeader.split(" ")[1]; // Bearer TOKEN
+    const token = authHeader.split(' ')[1];
 
     if (!token) {
       res.status(401).json({
@@ -37,8 +37,7 @@ export const authenticateToken = async (
 
     const authService = container.resolve(AuthService);
     const decoded = authService.verifyToken(token);
-
-    // Validar que el token decodificado tenga userId
+    
     if (!decoded || !decoded.userId) {
       res.status(401).json({
         success: false,
@@ -46,8 +45,7 @@ export const authenticateToken = async (
       });
       return;
     }
-
-    // Agregar información del usuario al request
+    
     req.user = {
       userId: decoded.userId,
       email: decoded.email,
