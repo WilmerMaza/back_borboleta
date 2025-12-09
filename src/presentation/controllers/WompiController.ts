@@ -84,6 +84,23 @@ export class WompiController {
         return;
       }
 
+      // Validar que las direcciones tengan los campos mínimos requeridos
+      if (!shipping_address.street || !shipping_address.city || !shipping_address.pincode) {
+        res.status(400).json({
+          success: false,
+          message: 'shipping_address debe tener street, city y pincode'
+        });
+        return;
+      }
+
+      if (!billing_address.street || !billing_address.city || !billing_address.pincode) {
+        res.status(400).json({
+          success: false,
+          message: 'billing_address debe tener street, city y pincode'
+        });
+        return;
+      }
+
       // Buscar usuario
       const user = await UserModel.findOne({ id: req.user.userId });
       if (!user) {
@@ -132,6 +149,8 @@ export class WompiController {
       const reference = this.wompiService.generateReference(); // 🔐 referencia usada para firma
       const expirationTime = this.wompiService.generateExpirationTime(1);
       const expiresAt = new Date(expirationTime);
+      
+      // expirationTime se genera para guardarlo en la base de datos, pero NO se incluye en la firma ni en la respuesta
 
       await this.pendingOrderRepository.create({
         reference,
@@ -161,12 +180,24 @@ export class WompiController {
       // Asegurar que amountInCents sea un número entero
       const amountInCentsInt = Math.floor(amountInCents);
 
-      // Generar firma INCLUYENDO expiration_time (porque lo estamos usando en el widget)
+      // Logs adicionales para debuggear la firma
+      console.log('🔍 DATOS PARA FIRMA:', {
+        reference,
+        amountInCents: amountInCentsInt,
+        currency: wompiConfig.CURRENCY,
+        environment: wompiConfig.ENV,
+        isSandbox: wompiConfig.isSandbox,
+        publicKeyPreview: wompiConfig.PUBLIC_KEY.substring(0, 20) + '...',
+        integritySecretLength: wompiConfig.INTEGRITY_SECRET?.length || 0
+      });
+
+      // Generar firma de integridad SIN expirationTime
+      // Formato: <Referencia><Monto><Moneda><SecretoIntegridad>
       const signatureIntegrity = this.wompiService.generateIntegritySignature(
         reference,
         amountInCentsInt,
-        wompiConfig.CURRENCY,
-        expirationTime // Ya está declarado arriba
+        wompiConfig.CURRENCY
+        // NO incluir expirationTime en la firma
       );
 
       const userPhone = user.phone ? String(user.phone).replace(/\D/g, '') : '';
@@ -205,7 +236,7 @@ export class WompiController {
           signatureIntegrity, // Campo principal
           signature: signatureIntegrity, // Alias para compatibilidad con frontend
           redirectUrl,
-          expirationTime,
+          // NO incluir expirationTime en la respuesta
           taxes: {
             vat: vatInCents,
             consumption: consumptionTaxInCents
@@ -230,24 +261,60 @@ export class WompiController {
    * 
    * Wompi envía notificaciones cuando cambia el estado de una transacción
    * IMPORTANTE: Este endpoint recibe el body como RAW Buffer
+   * 
+   * NOTA: Este endpoint SIEMPRE debe responder 200 para evitar que Wompi lo marque como fallido
+   * y siga reintentando. Los errores se registran en logs pero no se devuelven a Wompi.
    */
   async handleWebhook(req: Request, res: Response): Promise<void> {
     try {
+      console.log('📥 Webhook recibido de Wompi');
+      
       // El body viene como Buffer RAW (configurado en index.ts)
       const rawBody = req.body as Buffer;
+      
+      if (!rawBody || rawBody.length === 0) {
+        console.warn('⚠️ Webhook recibido sin body');
+        res.status(200).json({ success: true, message: 'Webhook recibido sin body' });
+        return;
+      }
+      
       const textBody = rawBody.toString('utf8');
-      const eventJson = JSON.parse(textBody);
+      let eventJson: any;
+      
+      try {
+        eventJson = JSON.parse(textBody);
+      } catch (parseError) {
+        console.error('❌ Error al parsear JSON del webhook:', parseError);
+        res.status(200).json({ success: true, message: 'Error al parsear JSON, pero webhook recibido' });
+        return;
+      }
+
+      console.log('📋 Evento recibido:', {
+        event: eventJson.event || 'unknown',
+        hasTransaction: !!eventJson.data?.transaction,
+        transactionId: eventJson.data?.transaction?.id || 'N/A',
+        reference: eventJson.data?.transaction?.reference || 'N/A',
+        status: eventJson.data?.transaction?.status || 'N/A'
+      });
 
       // Validar firma del webhook
       const isValidSignature = this.wompiService.verifyWebhookSignature(rawBody, eventJson);
       
-      if (!isValidSignature && process.env.NODE_ENV === 'production') {
-        console.error('⚠️ Webhook con firma inválida');
-        res.status(401).json({
-          success: false,
-          message: 'Firma inválida'
-        });
-        return;
+      if (!isValidSignature) {
+        if (process.env.NODE_ENV === 'production') {
+          console.error('⚠️ Webhook con firma inválida - Rechazado en producción');
+          // En producción, rechazamos pero respondemos 200 para evitar reintentos infinitos
+          res.status(200).json({
+            success: false,
+            message: 'Firma inválida - Webhook rechazado'
+          });
+          return;
+        } else {
+          console.warn('⚠️ Webhook con firma inválida - Continuando en desarrollo para debugging');
+          // En desarrollo, continuamos para poder debuggear
+        }
+      } else {
+        console.log('✅ Firma del webhook válida');
       }
 
       // Extraer información de la transacción
