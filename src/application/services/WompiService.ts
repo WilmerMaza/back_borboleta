@@ -28,25 +28,55 @@ export class WompiService {
     currency: string = wompiConfig.CURRENCY,
     expirationTime?: string
   ): string {
-    if (!wompiConfig.INTEGRITY_SECRET) {
-      throw new Error('WOMPI_INTEGRITY_SECRET no está configurado');
-    }
-
     const amount = Math.floor(Number(amountInCents));
 
-    // Construir base: reference + amountInCents + currency
     let base = `${reference}${amount}${currency}`;
-
     if (expirationTime) {
       base += expirationTime;
     }
 
-    const stringToSign = `${base}${wompiConfig.INTEGRITY_SECRET}`;
+    // Obtener el secreto y asegurarse de que esté limpio (sin espacios)
+    const secret = wompiConfig.INTEGRITY_SECRET?.trim() || '';
+    if (!secret) {
+      console.error('❌ INTEGRITY_SECRET vacío o no configurado');
+      throw new Error('INTEGRITY_SECRET no configurado');
+    }
+
+    // Logs detallados del secreto
+    console.log('🔐 SECRET DEBUG:', {
+      secretLength: secret.length,
+      secretPreview: secret.substring(0, 20) + '...',
+      secretEndsWith: secret.substring(secret.length - 10),
+      expectedLength: wompiConfig.isSandbox ? 47 : 'variable',
+      isSandbox: wompiConfig.isSandbox
+    });
+
+    // Construir el string exacto para la firma: <Referencia><Monto><Moneda><SecretoIntegridad>
+    const stringToSign = `${base}${secret}`;
+
+    console.log('🔗 STRING TO SIGN EXACTO:', {
+      reference,
+      amount,
+      currency,
+      expirationTime: expirationTime || 'no incluido',
+      base,
+      secretLength: secret.length,
+      stringToSign: stringToSign, // String completo para verificar
+      stringToSignLength: stringToSign.length,
+      stringToSignEndsWith: stringToSign.substring(stringToSign.length - 20) // Últimos 20 caracteres (debe terminar en el secreto)
+    });
+
     const signature = crypto
       .createHash('sha256')
       .update(stringToSign, 'utf8')
       .digest('hex');
 
+    console.log('✅ SIGNATURE GENERADA:', {
+      signature: signature,
+      length: signature.length,
+      preview: signature.substring(0, 20) + '...' + signature.substring(signature.length - 10)
+    });
+    
     return signature;
   }
 
