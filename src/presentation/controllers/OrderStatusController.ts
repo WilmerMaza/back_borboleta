@@ -44,7 +44,24 @@ export class OrderStatusController {
         return;
       }
 
-      const orderId = parseInt(id);
+      // El ID puede ser un ObjectId de MongoDB (string) o un número
+      // Si es un ObjectId válido, usarlo directamente; si no, intentar parsearlo como número
+      let orderId: string | number = id;
+      
+      // Validar si es un ObjectId válido de MongoDB (24 caracteres hexadecimales)
+      if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+        // Si no es ObjectId, intentar parsearlo como número
+        const parsedId = parseInt(id);
+        if (isNaN(parsedId)) {
+          res.status(400).json({
+            success: false,
+            message: 'ID de orden inválido'
+          });
+          return;
+        }
+        orderId = parsedId;
+      }
+
       const activity = await this.orderStatusActivityRepository.updateOrderStatus(
         orderId,
         order_status_id,
@@ -137,6 +154,8 @@ export class OrderStatusController {
           slug: order.status
         },
         total: order.total_amount,
+        payment_status: order.payment_status || 'pending',
+        payment_method: order.payment_method || '',
         consumer: {
           name: order.customer_name || 'Cliente',
           email: order.customer_email || 'email@ejemplo.com'
@@ -185,6 +204,8 @@ export class OrderStatusController {
           slug: order.status
         },
         total: order.total_amount,
+        payment_status: order.payment_status || 'pending',
+        payment_method: order.payment_method || '',
         consumer: {
           name: order.customer_name || 'Cliente',
           email: order.customer_email || 'email@ejemplo.com'

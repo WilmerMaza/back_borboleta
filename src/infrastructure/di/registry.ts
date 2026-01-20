@@ -63,6 +63,7 @@ import { AttributeValueController } from '../../presentation/controllers/Attribu
 import { WompiService } from '../../application/services/WompiService';
 import { WompiController } from '../../presentation/controllers/WompiController';
 import { PendingOrderRepository } from '../repositories/PendingOrderRepository';
+import { StatisticsController } from '../../presentation/controllers/StatisticsController';
 
 // Registro de repositorios
 container.register('ProductRepository', {
@@ -330,6 +331,10 @@ container.register('WompiService', {
 
 container.register('WompiController', {
   useClass: WompiController
+});
+
+container.register('StatisticsController', {
+  useClass: StatisticsController
 });
 
 export { container };
