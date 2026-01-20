@@ -3,6 +3,11 @@ import { injectable, inject } from 'tsyringe';
 import { OrderRepository } from '../../infrastructure/repositories/OrderRepository';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import UserModel from '../../infrastructure/database/models/UserModel';
+import RoleModel from '../../infrastructure/database/models/RoleModel';
+import ProductModel from '../../infrastructure/database/models/ProductModel';
+import AddressModel from '../../infrastructure/database/models/AddressModel';
+import OrderStatusModel from '../../infrastructure/database/models/OrderStatusModel';
+
 
 
 @injectable()
@@ -176,6 +181,17 @@ export class OrderController {
       const ordersAdapted = await Promise.all(orders.map(async (order: any) => {
         const user = order.user_id ? await UserModel.findOne({ id: order.user_id }) : null;
         const customerName = user ? user.name : '';
+        
+        // Obtener el estado real desde la base de datos para tener el sequence correcto
+        const orderStatusSlug = order.status || 'pending';
+        const dbOrderStatus = await OrderStatusModel.findOne({ slug: orderStatusSlug });
+        const dbOrderStatusObj = dbOrderStatus ? ((dbOrderStatus as any).toObject ? (dbOrderStatus as any).toObject() : dbOrderStatus) : null;
+        const orderStatus = dbOrderStatusObj ? {
+          id: dbOrderStatusObj.id || 1,
+          name: dbOrderStatusObj.name || orderStatusSlug,
+          sequence: dbOrderStatusObj.sequence || 1,
+          slug: dbOrderStatusObj.slug || orderStatusSlug
+        } : { id: 1, name: orderStatusSlug, sequence: 1, slug: orderStatusSlug };
 
         const products = (order.items || []).map((item: any) => ({
           id: item.product_id,
@@ -347,13 +363,8 @@ export class OrderController {
           shipping_address_id: order.shipping_address_id || null,
           shipping_address: order.shipping_address || null,
           delivery_interval: order.delivery_interval || '',
-          order_status_id: order.order_status_id || 1,
-          order_status: {
-            id: order.order_status_id || 1,
-            name: order.status || 'pending',
-            sequence: 1,
-            slug: order.status || 'pending'
-          },
+          order_status_id: order.order_status_id || orderStatus.id || 1,
+          order_status: orderStatus,
           parent_id: order.parent_id || null,
           payment_method: order.payment_method || '',
           payment_status: order.payment_status || 'pending',
@@ -414,59 +425,86 @@ export class OrderController {
       // Adaptar productos
       const user = order.user_id ? await UserModel.findOne({ id: order.user_id }) : null;
       const customerName = user ? user.name : '';
-      // En el mapeo de productos en la respuesta de cada orden (en getOrders, getOrderById, getOrdersByUserId):
-      // Usa directamente los valores del item guardado en la orden:
-      const products = (order.items || []).map((item: any) => ({
-        id: item.product_id,
-        name: item.product?.name || item.name || `Producto ${item.product_id}`,
-        price: item.price,
-        sale_price: item.sale_price,
-        total: item.total,
-        is_return: 0,
-        product_thumbnail_id: null,
-        can_review: false,
-        order_amount: item.total,
-        is_wishlist: false,
-        rating_count: null,
-        review_ratings: [0,0,0,0,0],
-        related_products: [],
-        cross_sell_products: [],
-        pivot: {
-          order_id: order.id  || null,
-          wholesale_price: 0,
-          variation: item.variation_id || null,
-          quantity: item.quantity,
-          single_price: item.price || item.sale_price || 0,
-          shipping_cost: 0,
-          refund_status: null,
-          product_id: item.product_id,
-          product_type: 'physical',
-          subtotal: item.total || item.sub_total || 0
-        },
-        wholesales: [],
-        variations: [],
-        product_thumbnail: null,
-        product_galleries: [],
-        attributes: [],
-        brand: null,
-        wishlist: [],
-        reviews: []
+      
+      // Obtener todos los productos de los items para usar como respaldo
+      const productIds = (order.items || []).map((item: any) => item.product_id).filter((id: any) => id != null);
+      const dbProducts = await ProductModel.find({ id: { $in: productIds } });
+      const productsMap = new Map(dbProducts.map((p: any) => [p.id, p.toObject ? p.toObject() : p]));
+      
+      const products = await Promise.all((order.items || []).map(async (item: any) => {
+        const productId = item.product_id;
+        const dbProduct = productsMap.get(productId);
+        
+        // Usar valores del item, pero si son 0 o no existen, usar valores del producto de la BD
+        const itemPrice = item.price && item.price > 0 ? item.price : (dbProduct?.price || 0);
+        const itemSalePrice = item.sale_price && item.sale_price > 0 ? item.sale_price : (dbProduct?.sale_price || itemPrice);
+        const itemQuantity = item.quantity || 1;
+        const itemTotal = item.total && item.total > 0 ? item.total : (itemSalePrice * itemQuantity);
+        const itemSubTotal = item.sub_total && item.sub_total > 0 ? item.sub_total : itemTotal;
+        const productName = item.name || dbProduct?.name || `Producto ${productId}`;
+        
+        return {
+          id: productId,
+          name: productName,
+          price: itemPrice,
+          sale_price: itemSalePrice,
+          total: itemTotal,
+          is_return: 0,
+          product_thumbnail_id: null,
+          can_review: false,
+          order_amount: itemTotal,
+          is_wishlist: false,
+          rating_count: null,
+          review_ratings: [0,0,0,0,0],
+          related_products: [],
+          cross_sell_products: [],
+          pivot: {
+            order_id: order.id || null,
+            wholesale_price: 0,
+            variation: item.variation_id || null,
+            quantity: itemQuantity,
+            single_price: itemPrice || itemSalePrice || 0,
+            shipping_cost: 0,
+            refund_status: null,
+            product_id: productId,
+            product_type: 'physical',
+            subtotal: itemSubTotal
+          },
+          wholesales: [],
+          variations: [],
+          product_thumbnail: null,
+          product_galleries: [],
+          attributes: [],
+          brand: null,
+          wishlist: [],
+          reviews: []
+        };
       }));
-      const adaptAddress = (address: any) => address ? {
-        id: address.id || null,
-        city: address.city || '',
-        phone: address.phone || '',
-        state: address.state || null,
-        title: address.title || '',
-        street: address.address || '',
-        country: address.country || null,
-        pincode: address.postal_code || address.pincode || '',
-        user_id: address.user_id || '',
-        state_id: address.state_id || null,
-        country_id: address.country_id || null,
-        is_default: address.is_default || 0,
-        country_code: address.country_code || ''
-      } : null;
+      const adaptAddress = (address: any) => {
+        if (!address) return null;
+        
+        // El esquema de direcciones en OrderModel tiene: name, email, phone, address, city, state, country, postal_code
+        return {
+          id: address.id || null,
+          name: address.name || '',
+          email: address.email || '',
+          phone: address.phone || '',
+          address: address.address || '',
+          city: address.city || '',
+          state: address.state || '',
+          country: address.country || '',
+          postal_code: address.postal_code || address.pincode || '',
+          // Campos adicionales que el frontend puede necesitar
+          title: address.title || address.name || '',
+          street: address.address || '',
+          pincode: address.postal_code || address.pincode || '',
+          user_id: address.user_id || '',
+          state_id: address.state_id || null,
+          country_id: address.country_id || null,
+          is_default: address.is_default || 0,
+          country_code: address.country_code || ''
+        };
+      };
       const consumer = order.user_id ? {
         id: order.user_id,
         name: '',
@@ -485,7 +523,18 @@ export class OrderController {
         profile_image_id: null,
         email_verified_at: ''
       } : null;
-      const order_status = { id: 1, name: order.status || 'pending', sequence: 1, slug: order.status || 'pending' };
+      
+      // Obtener el estado real desde la base de datos para tener el sequence correcto
+      const orderStatusSlug = order.status || 'pending';
+      const dbOrderStatus = await OrderStatusModel.findOne({ slug: orderStatusSlug });
+      const dbOrderStatusObj = dbOrderStatus ? ((dbOrderStatus as any).toObject ? (dbOrderStatus as any).toObject() : dbOrderStatus) : null;
+      const order_status = dbOrderStatusObj ? {
+        id: dbOrderStatusObj.id || 1,
+        name: dbOrderStatusObj.name || orderStatusSlug,
+        sequence: dbOrderStatusObj.sequence || 1,
+        slug: dbOrderStatusObj.slug || orderStatusSlug
+      } : { id: 1, name: orderStatusSlug, sequence: 1, slug: orderStatusSlug };
+      
       const order_status_activities = (order as any).order_status_activities && (order as any).order_status_activities.length > 0
         ? (order as any).order_status_activities
         : [{
@@ -580,8 +629,20 @@ export class OrderController {
         return;
       }
 
-      // Verificar que la orden pertenece al usuario autenticado
-      if (order.user_id !== req.user.userId.toString()) {
+      // Verificar si el usuario es administrador consultando la base de datos
+      // (el token JWT no incluye el rol, solo userId y email)
+      const authenticatedUser = await UserModel.findOne({ id: req.user.userId });
+      let isAdmin = false;
+      
+      if (authenticatedUser && authenticatedUser.role_id) {
+        const role = await RoleModel.findOne({ id: authenticatedUser.role_id });
+        if (role && role.name === 'admin') {
+          isAdmin = true;
+        }
+      }
+
+      // Verificar que la orden pertenece al usuario autenticado O que el usuario es administrador
+      if (!isAdmin && order.user_id !== req.user.userId.toString()) {
         res.status(403).json({
           success: false,
           message: 'No tienes permisos para acceder a esta orden'
@@ -589,31 +650,40 @@ export class OrderController {
         return;
       }
 
-      console.log('🔍 Orden completa:', order);
-      console.log('🔍 Items de la orden:', order.items);
-      
       // Procesar la orden de la misma manera que los otros métodos
-      const user = order.user_id ? await UserModel.findOne({ id: order.user_id }) : null;
-      const customerName = user ? user.name : '';
+      // Si el usuario autenticado es el dueño, reutilizar la consulta anterior
+      const orderOwner = (authenticatedUser && order.user_id === req.user.userId.toString()) 
+        ? authenticatedUser 
+        : (order.user_id ? await UserModel.findOne({ id: order.user_id }) : null);
+      const customerName = orderOwner ? orderOwner.name : '';
    
-      const products = (order.items || []).map((item: any) => {
-        console.log('🔍 Item individual completo:', JSON.stringify(item, null, 2));
-        console.log('🔍 item.product:', item.product);
-        console.log('🔍 item.product?.name:', item.product?.name);
-        console.log('🔍 item.name:', item.name);
-        const productName = item.name || `Producto ${item.product_id}`;
-        console.log('🔍 Nombre del producto final:', productName);
+      // Obtener todos los productos de los items para usar como respaldo
+      const productIds = (order.items || []).map((item: any) => item.product_id).filter((id: any) => id != null);
+      const dbProducts = await ProductModel.find({ id: { $in: productIds } });
+      const productsMap = new Map(dbProducts.map((p: any) => [p.id, p.toObject ? p.toObject() : p]));
+      
+      const products = await Promise.all((order.items || []).map(async (item: any) => {
+        const productId = item.product_id;
+        const dbProduct = productsMap.get(productId);
+        
+        // Usar valores del item, pero si son 0 o no existen, usar valores del producto de la BD
+        const itemPrice = item.price && item.price > 0 ? item.price : (dbProduct?.price || 0);
+        const itemSalePrice = item.sale_price && item.sale_price > 0 ? item.sale_price : (dbProduct?.sale_price || itemPrice);
+        const itemQuantity = item.quantity || 1;
+        const itemTotal = item.total && item.total > 0 ? item.total : (itemSalePrice * itemQuantity);
+        const itemSubTotal = item.sub_total && item.sub_total > 0 ? item.sub_total : itemTotal;
+        const productName = item.name || dbProduct?.name || `Producto ${productId}`;
         
         return {
-          id: item.product_id,
+          id: productId,
           name: productName,
-          price: item.price,
-          sale_price: item.sale_price,
-          total: item.total,
+          price: itemPrice,
+          sale_price: itemSalePrice,
+          total: itemTotal,
           is_return: 0,
           product_thumbnail_id: null,
           can_review: false,
-          order_amount: item.total,
+          order_amount: itemTotal,
           is_wishlist: false,
           rating_count: null,
           review_ratings: [0,0,0,0,0],
@@ -623,13 +693,13 @@ export class OrderController {
             order_id: order.id || (order as any)._id || null,
             wholesale_price: 0,
             variation: item.variation_id || null,
-            quantity: item.quantity,
-            single_price: item.price || item.sale_price || 0,
+            quantity: itemQuantity,
+            single_price: itemPrice || itemSalePrice || 0,
             shipping_cost: 0,
             refund_status: null,
-            product_id: item.product_id,
+            product_id: productId,
             product_type: 'physical',
-            subtotal: item.total || item.sub_total || 0
+            subtotal: itemSubTotal
           },
           wholesales: [],
           variations: [],
@@ -640,25 +710,125 @@ export class OrderController {
           wishlist: [],
           reviews: []
         };
-      });
+      }));
 
-      const adaptAddress = (address: any) => address ? {
-        id: address.id || null,
-        city: address.city || '',
-        phone: address.phone || '',
-        state: address.state || null,
-        title: address.title || '',
-        street: address.address || '',
-        country: address.country || null,
-        pincode: address.postal_code || address.pincode || '',
-        user_id: address.user_id || '',
-        state_id: address.state_id || null,
-        country_id: address.country_id || null,
-        is_default: address.is_default || 0,
-        country_code: address.country_code || ''
-      } : null;
+      // Obtener direcciones del usuario si las direcciones de la orden están vacías
+      let userBillingAddress = null;
+      let userShippingAddress = null;
+      
+      if (order.user_id) {
+        const userAddresses = await AddressModel.find({ user_id: Number(order.user_id) });
+        
+        // Buscar dirección de facturación: primero por billing_address_id, luego por tipo 'billing', luego por defecto
+        if (order.billing_address_id) {
+          userBillingAddress = userAddresses.find((addr: any) => addr.id === order.billing_address_id);
+        }
+        if (!userBillingAddress) {
+          userBillingAddress = userAddresses.find((addr: any) => addr.type === 'billing' && addr.is_default);
+        }
+        if (!userBillingAddress) {
+          userBillingAddress = userAddresses.find((addr: any) => addr.type === 'billing');
+        }
+        if (!userBillingAddress) {
+          userBillingAddress = userAddresses.find((addr: any) => addr.is_default);
+        }
+        
+        // Buscar dirección de envío: primero por shipping_address_id, luego por tipo 'shipping', luego por defecto
+        if (order.shipping_address_id) {
+          userShippingAddress = userAddresses.find((addr: any) => addr.id === order.shipping_address_id);
+        }
+        if (!userShippingAddress) {
+          userShippingAddress = userAddresses.find((addr: any) => addr.type === 'shipping' && addr.is_default);
+        }
+        if (!userShippingAddress) {
+          userShippingAddress = userAddresses.find((addr: any) => addr.type === 'shipping');
+        }
+        if (!userShippingAddress) {
+          userShippingAddress = userAddresses.find((addr: any) => addr.is_default && addr.type !== 'billing');
+        }
+        // Si no hay dirección de envío específica, usar la de facturación
+        if (!userShippingAddress) {
+          userShippingAddress = userBillingAddress;
+        }
+      }
 
-      const consumer = order.user_id ? {
+      // Función para adaptar direcciones de OrderModel o AddressModel
+      const adaptAddress = (address: any, userAddress: any = null) => {
+        // Si hay dirección en la orden, usarla
+        if (address) {
+          // El esquema de direcciones en OrderModel tiene: name, email, phone, address, city, state, country, postal_code
+          return {
+            id: address.id || null,
+            name: address.name || '',
+            email: address.email || '',
+            phone: address.phone || '',
+            address: address.address || '',
+            city: address.city || '',
+            state: address.state || '',
+            country: address.country || '',
+            postal_code: address.postal_code || address.pincode || '',
+            // Campos adicionales que el frontend puede necesitar
+            title: address.title || address.name || '',
+            street: address.address || '',
+            pincode: address.postal_code || address.pincode || '',
+            user_id: address.user_id || '',
+            state_id: address.state_id || null,
+            country_id: address.country_id || null,
+            is_default: address.is_default || 0,
+            country_code: address.country_code || ''
+          };
+        }
+        
+        // Si no hay dirección en la orden pero hay dirección del usuario, adaptarla
+        if (userAddress) {
+          const addr = userAddress.toObject ? userAddress.toObject() : userAddress;
+          const userName = orderOwner?.name || '';
+          const userEmail = orderOwner?.email || '';
+          const userPhone = orderOwner?.phone || '';
+          
+          return {
+            id: addr.id || null,
+            name: userName || addr.title || '',
+            email: userEmail || '',
+            phone: userPhone || addr.phone?.toString() || '',
+            address: addr.street || '',
+            city: addr.city || '',
+            state: addr.state?.name || addr.state || '',
+            country: addr.country?.name || addr.country || '',
+            postal_code: addr.pincode || '',
+            // Campos adicionales que el frontend puede necesitar
+            title: addr.title || userName || '',
+            street: addr.street || '',
+            pincode: addr.pincode || '',
+            user_id: addr.user_id || order.user_id || '',
+            state_id: addr.state_id || null,
+            country_id: addr.country_id || null,
+            is_default: addr.is_default || false,
+            country_code: addr.country_code?.toString() || ''
+          };
+        }
+        
+        return null;
+      };
+
+      const consumer = orderOwner ? {
+        id: orderOwner.id || order.user_id || null,
+        name: orderOwner.name || customerName || '',
+        role: null,
+        email: orderOwner.email || '',
+        phone: orderOwner.phone || '',
+        point: null,
+        status: orderOwner.status ? 1 : 0,
+        wallet: null,
+        created_at: orderOwner.created_at || '',
+        country_code: orderOwner.country_code?.toString() || '',
+        orders_count: 0,
+        created_by_id: null,
+        profile_image: null,
+        system_reserve: '0',
+        profile_image_id: null,
+        email_verified_at: orderOwner.email_verified_at || ''
+      } : (order.user_id ? {
         id: order.user_id,
         name: '',
         role: null,
@@ -675,9 +845,18 @@ export class OrderController {
         system_reserve: '0',
         profile_image_id: null,
         email_verified_at: ''
-      } : null;
+      } : null);
 
-      const order_status = { id: 1, name: order.status || 'pending', sequence: 1, slug: order.status || 'pending' };
+      // Obtener el estado real desde la base de datos para tener el sequence correcto
+      const orderStatusSlug = order.status || 'pending';
+      const dbOrderStatus = await OrderStatusModel.findOne({ slug: orderStatusSlug });
+      const dbOrderStatusObj = dbOrderStatus ? ((dbOrderStatus as any).toObject ? (dbOrderStatus as any).toObject() : dbOrderStatus) : null;
+      const order_status = dbOrderStatusObj ? {
+        id: dbOrderStatusObj.id || 1,
+        name: dbOrderStatusObj.name || orderStatusSlug,
+        sequence: dbOrderStatusObj.sequence || 1,
+        slug: dbOrderStatusObj.slug || orderStatusSlug
+      } : { id: 1, name: orderStatusSlug, sequence: 1, slug: orderStatusSlug };
       
       const order_status_activities = (order as any).order_status_activities && (order as any).order_status_activities.length > 0
         ? (order as any).order_status_activities
@@ -708,8 +887,8 @@ export class OrderController {
         payment_method: order.payment_method || '',
         payment_status: (order.payment_status || 'pending').toUpperCase(),
         store_id: order.store_id || null,
-        billing_address: adaptAddress(order.billing_address),
-        shipping_address: adaptAddress(order.shipping_address),
+        billing_address: adaptAddress(order.billing_address, userBillingAddress),
+        shipping_address: adaptAddress(order.shipping_address, userShippingAddress),
         products,
         consumer,
         delivery_description: (order as any).delivery_description || '',

@@ -13,7 +13,7 @@ export interface IOrderStatusRepository {
 export interface IOrderStatusActivityRepository {
   create(activity: Partial<IOrderStatusActivity>): Promise<IOrderStatusActivity>;
   findByOrderId(orderId: number): Promise<IOrderStatusActivity[]>;
-  updateOrderStatus(orderId: number, statusId: number, note?: string): Promise<IOrderStatusActivity>;
+  updateOrderStatus(orderId: string | number, statusId: number, note?: string): Promise<IOrderStatusActivity>;
 }
 
 
