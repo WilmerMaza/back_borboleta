@@ -7,6 +7,8 @@ import RoleModel from './RoleModel';
 import { SettingThemeModel } from './SettingThemeModel';
 import AttributeModel from './AttributeModel';
 import AttributeValueModel from './AttributeValueModel';
+import TaxModel from './TaxModel';
+import MenuModel from './MenuModel';
 
 export {
     ProductModel,
@@ -17,5 +19,7 @@ export {
     RoleModel,
     SettingThemeModel,
     AttributeModel,
-    AttributeValueModel
+    AttributeValueModel,
+    TaxModel,
+    MenuModel
 }; 
