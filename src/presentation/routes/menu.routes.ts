@@ -6,9 +6,7 @@ import { authenticateToken } from '../../middleware/auth';
 const router = Router();
 const menuController = container.resolve(MenuController);
 
-// Aplicar middleware de autenticación a todas las rutas
-router.use(authenticateToken);
-
+// GET públicos (sin token): el usuario no siempre está logeado
 // GET /api/menus/hierarchy - Obtener estructura jerárquica completa (debe ir antes de /:id)
 router.get('/hierarchy', (req, res) => menuController.getHierarchy(req, res));
 
@@ -18,16 +16,10 @@ router.get('/', (req, res) => menuController.getAll(req, res));
 // GET /api/menus/:id - Obtener un menú por ID
 router.get('/:id', (req, res) => menuController.getById(req, res));
 
-// POST /api/menus - Crear menú
-router.post('/', (req, res) => menuController.create(req, res));
-
-// PUT /api/menus/:id - Actualizar menú
-router.put('/:id', (req, res) => menuController.update(req, res));
-
-// PUT /api/menus/sort - Actualizar orden de menús
-router.put('/sort', (req, res) => menuController.updateSort(req, res));
-
-// DELETE /api/menus/:id - Eliminar menú
-router.delete('/:id', (req, res) => menuController.delete(req, res));
+// Rutas de escritura requieren autenticación
+router.post('/', authenticateToken, (req, res) => menuController.create(req, res));
+router.put('/sort', authenticateToken, (req, res) => menuController.updateSort(req, res));
+router.put('/:id', authenticateToken, (req, res) => menuController.update(req, res));
+router.delete('/:id', authenticateToken, (req, res) => menuController.delete(req, res));
 
 export default router;
