@@ -64,6 +64,10 @@ import { WompiService } from '../../application/services/WompiService';
 import { WompiController } from '../../presentation/controllers/WompiController';
 import { PendingOrderRepository } from '../repositories/PendingOrderRepository';
 import { StatisticsController } from '../../presentation/controllers/StatisticsController';
+import { TaxRepository } from '../repositories/TaxRepository';
+import { TaxController } from '../../presentation/controllers/TaxController';
+import { MenuRepository } from '../repositories/MenuRepository';
+import { MenuController } from '../../presentation/controllers/MenuController';
 
 // Registro de repositorios
 container.register('ProductRepository', {
@@ -125,6 +129,14 @@ container.register('AttributeValueRepository', {
 
 container.register('IAttributeValueRepository', {
   useClass: AttributeValueRepository
+});
+
+container.register('TaxRepository', {
+  useClass: TaxRepository
+});
+
+container.register('MenuRepository', {
+  useClass: MenuRepository
 });
 
 container.register('CartController', {
@@ -335,6 +347,14 @@ container.register('WompiController', {
 
 container.register('StatisticsController', {
   useClass: StatisticsController
+});
+
+container.register('TaxController', {
+  useClass: TaxController
+});
+
+container.register('MenuController', {
+  useClass: MenuController
 });
 
 export { container };
