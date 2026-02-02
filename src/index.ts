@@ -72,6 +72,8 @@ import attributeRoutes from './presentation/routes/attribute.routes';
 import attributeValueRoutes from './presentation/routes/attribute-value.routes';
 import wompiRoutes from './presentation/routes/wompi.routes';
 import statisticsRoutes from './presentation/routes/statistics.routes';
+import taxRoutes from './presentation/routes/tax.routes';
+import menuRoutes from './presentation/routes/menu.routes';
 import userRoutes from './routes/userRoutes';
 import connectDB from './infrastructure/database/config/database';
 
@@ -108,6 +110,8 @@ app.use('/api/attributes', attributeRoutes);
 app.use('/api/attribute-values', attributeValueRoutes);
 app.use('/api/wompi', wompiRoutes);
 app.use('/api', statisticsRoutes);
+app.use('/api/taxes', taxRoutes);
+app.use('/api/menus', menuRoutes);
 
 // Ruta de prueba
 app.get('/', (_req, res) => {
