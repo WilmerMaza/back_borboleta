@@ -52,7 +52,13 @@ export class WompiService {
     });
 
     // Construir el string exacto para la firma: <Referencia><Monto><Moneda><SecretoIntegridad>
+    // IMPORTANTE: Sin espacios, sin guiones adicionales, solo concatenación directa
     const stringToSign = `${base}${secret}`;
+
+    // Verificar que no haya espacios en el string
+    if (stringToSign.includes(' ') || stringToSign.includes('\n') || stringToSign.includes('\r')) {
+      console.warn('⚠️ ADVERTENCIA: El string para la firma contiene espacios o saltos de línea');
+    }
 
     console.log('🔗 STRING TO SIGN EXACTO:', {
       reference,
@@ -63,7 +69,9 @@ export class WompiService {
       secretLength: secret.length,
       stringToSign: stringToSign, // String completo para verificar
       stringToSignLength: stringToSign.length,
-      stringToSignEndsWith: stringToSign.substring(stringToSign.length - 20) // Últimos 20 caracteres (debe terminar en el secreto)
+      stringToSignEndsWith: stringToSign.substring(stringToSign.length - 20), // Últimos 20 caracteres (debe terminar en el secreto)
+      // Mostrar los primeros caracteres para verificar el formato
+      stringToSignStartsWith: stringToSign.substring(0, Math.min(50, stringToSign.length))
     });
 
     const signature = crypto
@@ -74,7 +82,9 @@ export class WompiService {
     console.log('✅ SIGNATURE GENERADA:', {
       signature: signature,
       length: signature.length,
-      preview: signature.substring(0, 20) + '...' + signature.substring(signature.length - 10)
+      preview: signature.substring(0, 20) + '...' + signature.substring(signature.length - 10),
+      // Mostrar la firma completa para comparar con la que envía el frontend
+      fullSignature: signature
     });
     
     return signature;
