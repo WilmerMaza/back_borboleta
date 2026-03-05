@@ -170,6 +170,28 @@ export class ProductRepository implements IProductRepository {
     }
   }
 
+  async findAllWithDiscount(params: { skip: number; limit: number }): Promise<IProduct[]> {
+    try {
+      const products = await ProductModel.find({ discount: { $gt: 0 } })
+        .populate('categories')
+        .skip(params.skip)
+        .limit(params.limit)
+        .sort({ createdAt: -1 });
+
+      return products.map((product) => {
+        const productObj = product.toObject();
+        return { ...productObj };
+      });
+    } catch (error) {
+      console.error("❌ Error en ProductRepository.findAllWithDiscount:", error);
+      throw new Error("Error al obtener productos con descuento");
+    }
+  }
+
+  async countWithDiscount(): Promise<number> {
+    return ProductModel.countDocuments({ discount: { $gt: 0 } });
+  }
+
   async findById(id: string): Promise<IProduct | null> {
     try {
       const product = await ProductModel.findById(id);
@@ -203,15 +225,30 @@ export class ProductRepository implements IProductRepository {
     }
   }
 
-  async findBySlug(slug: string): Promise<IProduct | null> {
+  async findBySlug(slug: string, options?: { include?: string[] }): Promise<IProduct | null> {
     try {
-      const product = await ProductModel.findOne({ slug });
+      let query: any = ProductModel.findOne({ slug });
+
+      const includeList = options?.include ?? [];
+      const hasAttributes = includeList.includes('attributes');
+      const hasCategories = includeList.includes('categories');
+
+      if (hasAttributes) {
+        query = query.populate({
+          path: 'attributes',
+          populate: { path: 'attribute_values' },
+        });
+      }
+      if (hasCategories) {
+        query = query.populate('categories');
+      }
+
+      const product = await query.exec();
       if (!product) return null;
 
       const productObj = product.toObject();
-      // Procesar imágenes del producto
       const processedProduct = await this.processProductImages(productObj);
-      
+
       return {
         ...processedProduct,
       };
@@ -412,15 +449,30 @@ export class ProductRepository implements IProductRepository {
     return await ProductModel.countDocuments(filter);
   }
 
-  async findByNumericId(numericId: number): Promise<IProduct | null> {
+  async findByNumericId(numericId: number, options?: { include?: string[] }): Promise<IProduct | null> {
     try {
-      const product = await ProductModel.findOne({ id: numericId });
+      let query: any = ProductModel.findOne({ id: numericId });
+
+      const includeList = options?.include ?? [];
+      const hasAttributes = includeList.includes('attributes');
+      const hasCategories = includeList.includes('categories');
+
+      if (hasAttributes) {
+        query = query.populate({
+          path: 'attributes',
+          populate: { path: 'attribute_values' },
+        });
+      }
+      if (hasCategories) {
+        query = query.populate('categories');
+      }
+
+      const product = await query.exec();
       if (!product) return null;
 
       const productObj = product.toObject();
-      // Procesar imágenes del producto
       const processedProduct = await this.processProductImages(productObj);
-      
+
       return {
         ...processedProduct,
       };

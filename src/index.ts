@@ -112,7 +112,6 @@ app.use('/api/wompi', wompiRoutes);
 app.use('/api', statisticsRoutes);
 app.use('/api/taxes', taxRoutes);
 app.use('/api/menus', menuRoutes);
-
 // Ruta de prueba
 app.get('/', (_req, res) => {
   res.json({ message: 'API de Borboleta funcionando correctamente' });

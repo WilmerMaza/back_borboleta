@@ -9,7 +9,6 @@ import AttributeModel from './AttributeModel';
 import AttributeValueModel from './AttributeValueModel';
 import TaxModel from './TaxModel';
 import MenuModel from './MenuModel';
-
 export {
     ProductModel,
     UserModel,
