@@ -12,6 +12,8 @@ import { DeleteProductCommand } from "../../application/commands/product/DeleteP
 import { DeleteProductHandler } from "../../application/command-handlers/product/DeleteProductHandler";
 import mongoose from "mongoose";
 import { CategoryRepository } from "../../infrastructure/repositories/CategoryRepository";
+import { parseIncludeParam } from "../../shared/utils/requestParams";
+import { ProductRepository } from "../../infrastructure/repositories/ProductRepository";
 import { IAttachmentRepository } from "../../domain/repositories/IAttachmentRepository";
 import { IAttributeRepository } from "../../domain/repositories/IAttributeRepository";
 import AttributeModel from "../../infrastructure/database/models/AttributeModel";
@@ -34,6 +36,8 @@ export class ProductController {
     private deleteProductHandler: DeleteProductHandler,
     @inject("CategoryRepository")
     private categoryRepository: CategoryRepository,
+    @inject("ProductRepository")
+    private productRepository: ProductRepository,
     @inject("IAttachmentRepository")
     private attachmentRepository: IAttachmentRepository,
     @inject("AttributeRepository")
@@ -259,6 +263,36 @@ export class ProductController {
     }
   }
 
+  async getProductsWithDiscount(req: Request, res: Response): Promise<void> {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const skip = (page - 1) * limit;
+
+      const [products, total] = await Promise.all([
+        this.productRepository.findAllWithDiscount({ skip, limit }),
+        this.productRepository.countWithDiscount(),
+      ]);
+
+      res.status(200).json({
+        success: true,
+        current_page: page,
+        data: products,
+        from: skip + 1,
+        last_page: Math.ceil(total / limit) || 1,
+        per_page: limit,
+        to: Math.min(skip + limit, total),
+        total,
+      });
+    } catch (error: any) {
+      console.error("❌ Error al obtener productos con descuento:", error.message);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Error al obtener los productos con descuento",
+      });
+    }
+  }
+
   async getProducts(req: Request, res: Response): Promise<void> {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -332,7 +366,10 @@ export class ProductController {
         return;
       }
 
-      const product = await this.getProductByIdHandler.handle(productId);
+      const include = parseIncludeParam(req.query.include);
+      const product = await this.getProductByIdHandler.handle(productId, {
+        include: include.length > 0 ? include : undefined,
+      });
 
       if (!product) {
         res.status(404).json({
@@ -369,8 +406,11 @@ export class ProductController {
         return;
       }
 
+      const include = parseIncludeParam(req.query.include);
       const command = new GetProductBySlugCommand(slug);
-      const product = await this.getProductBySlugHandler.handle(command);
+      const product = await this.getProductBySlugHandler.handle(command, {
+        include: include.length > 0 ? include : undefined,
+      });
 
       res.status(200).json({
         success: true,

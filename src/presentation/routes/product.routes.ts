@@ -8,6 +8,9 @@ const productController = container.resolve(ProductController);
 // Obtener productos
 router.get('/', (req, res) => productController.getProducts(req, res));
 
+// Obtener productos con descuento (debe ir antes de /:id)
+router.get('/discounts', (req, res) => productController.getProductsWithDiscount(req, res));
+
 // Crear producto
 router.post('/', (req, res) => productController.createProduct(req, res));
 
