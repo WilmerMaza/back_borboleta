@@ -9,8 +9,22 @@ import cors from 'cors';
 const app = express();
 const port = process.env.PORT || 3000;
 
+const corsOptions: cors.CorsOptions = {
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'Accept',
+    'Origin',
+    'X-Requested-With',
+  ],
+  optionsSuccessStatus: 204,
+};
 
-app.use(cors());
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Middleware para bypass del banner de ngrok (si es necesario)
 app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
@@ -90,6 +104,7 @@ connectDB()
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api', unifiedAuthRoutes); // Rutas unificadas para login
+app.use('/', unifiedAuthRoutes); // Alias de prueba: /admin/login sin prefijo /api
 app.use('/api/roles', roleRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/admin', adminRoutes);
