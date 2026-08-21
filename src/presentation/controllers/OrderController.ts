@@ -7,13 +7,16 @@ import RoleModel from '../../infrastructure/database/models/RoleModel';
 import ProductModel from '../../infrastructure/database/models/ProductModel';
 import AddressModel from '../../infrastructure/database/models/AddressModel';
 import OrderStatusModel from '../../infrastructure/database/models/OrderStatusModel';
+import { IEmailService } from '../../domain/interfaces/IEmailService';
+import { Logger } from '../../shared/utils/logger';
 
 
 
 @injectable()
 export class OrderController {
   constructor(
-    @inject('OrderRepository') private orderRepository: OrderRepository
+    @inject('OrderRepository') private orderRepository: OrderRepository,
+    @inject('EmailService') private emailService: IEmailService
   ) {}
 
   async createOrder(req: Request, res: Response): Promise<void> {
@@ -136,6 +139,27 @@ export class OrderController {
         updated_at: order.updated_at,
         total_amount: order.total_amount
       });
+
+      // Enviar correo de confirmación (no bloquea la creación si falla)
+      try {
+        let userEmail: string | null = null;
+        
+        if (consumer_id) {
+          // Usuario autenticado: obtener email del usuario
+          const user = await UserModel.findOne({ id: consumer_id });
+          userEmail = user?.email || null;
+        } else {
+          // Orden de invitado: obtener email de la dirección de envío o facturación
+          userEmail = shipping_address?.email || billing_address?.email || null;
+        }
+        
+        if (userEmail) {
+          await this.emailService.sendOrderConfirmationEmail(order, userEmail);
+        }
+      } catch (error: any) {
+        Logger.error('Error enviando correo de confirmación:', error);
+        // No lanzar error, la orden fue creada exitosamente
+      }
 
       res.status(201).json({
         success: true,

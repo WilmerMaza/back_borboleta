@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido a Borboleta</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #4a90e2;
+            margin: 0;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #4a90e2;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 5px;
+        }
+        .button:hover {
+            background-color: #357abd;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #777;
+            font-size: 12px;
+        }
+        .links {
+            margin-top: 20px;
+        }
+        .links a {
+            color: #4a90e2;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>¡Bienvenido a Borboleta!</h1>
+        </div>
+        <div class="content">
+            <p>Hola <strong>{{name}}</strong>,</p>
+            <p>¡Estamos emocionados de tenerte con nosotros!</p>
+            <p>Tu cuenta ha sido creada exitosamente. Ahora puedes disfrutar de todos nuestros productos y servicios.</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{{appUrl}}/products" class="button">Explorar Productos</a>
+            </div>
+            
+            <p>Para empezar, te recomendamos:</p>
+            <ul>
+                <li>Completar tu perfil</li>
+                <li>Explorar nuestro catálogo de productos</li>
+                <li>Agregar productos a tu carrito</li>
+            </ul>
+            
+            <div class="links">
+                <p>Enlaces útiles:</p>
+                <a href="{{appUrl}}/profile">Mi Perfil</a> |
+                <a href="{{appUrl}}/products">Productos</a> |
+                <a href="{{appUrl}}/orders">Mis Órdenes</a>
+            </div>
+        </div>
+        <div class="footer">
+            <p>Gracias por unirte a Borboleta</p>
+            <p>Si tienes alguna pregunta, no dudes en contactarnos.</p>
+        </div>
+    </div>
+</body>
+</html>

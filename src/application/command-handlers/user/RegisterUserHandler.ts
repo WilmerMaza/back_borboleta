@@ -4,12 +4,14 @@ import { IUserRepository } from '../../../domain/repositories/IUserRepository';
 import { AuthService } from '../../services/AuthService';
 import { RegisterUserCommand } from '../../commands/user/RegisterUserCommand';
 import { Logger } from '../../../shared/utils/logger';
+import { IEmailService } from '../../../domain/interfaces/IEmailService';
 
 @injectable()
 export class RegisterUserHandler {
   constructor(
     @inject("UserRepository") private userRepository: IUserRepository,
-    @inject("AuthService") private authService: AuthService
+    @inject("AuthService") private authService: AuthService,
+    @inject("EmailService") private emailService: IEmailService
   ) {}
 
   async handle(command: RegisterUserCommand): Promise<any> {
@@ -46,6 +48,14 @@ export class RegisterUserHandler {
       };
 
       const user = await this.userRepository.create(newUserData);
+
+      // Enviar correo de bienvenida (no bloquea el registro si falla)
+      try {
+        await this.emailService.sendWelcomeEmail(user);
+      } catch (error: any) {
+        Logger.error('Error enviando correo de bienvenida:', error);
+        // No lanzar error, el registro fue exitoso
+      }
 
       Logger.log('✅ Usuario registrado exitosamente:', {
         id: user.id,

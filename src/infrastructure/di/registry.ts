@@ -68,6 +68,7 @@ import { TaxRepository } from '../repositories/TaxRepository';
 import { TaxController } from '../../presentation/controllers/TaxController';
 import { MenuRepository } from '../repositories/MenuRepository';
 import { MenuController } from '../../presentation/controllers/MenuController';
+import { EmailService } from '../../application/services/EmailService';
 
 // Registro de repositorios
 container.register('ProductRepository', {
@@ -157,6 +158,10 @@ container.register('CheckoutController', {
 
 container.register('AuthService', {
   useClass: AuthService
+});
+
+container.register('EmailService', {
+  useClass: EmailService
 });
 
 container.register('OrderStatusController', {
